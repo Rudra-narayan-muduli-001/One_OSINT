@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "one-osint"
+version = "0.1.0"
+description = "Unified OSINT platform - email, username, phone, domain, IP and Google intelligence in one tool"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "one-osint" }]
+keywords = ["osint", "intelligence", "reconnaissance", "email", "username", "phone", "domain"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "httpx[http2]>=0.27",
+    "curl_cffi>=0.7",
+    "rich>=13.0",
+    "typer[all]>=0.12",
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "websockets>=12.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "phonenumbers>=8.13",
+    "dnspython>=2.6",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "reportlab>=4.0",
+    "pillow>=10.0",
+    "aiosqlite>=0.20",
+    "aiodns>=3.2",
+    "pypdf>=4.0",
+    "piexif>=1.1",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "respx>=0.21",
+]
+
+[project.scripts]
+one-osint = "one_osint.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/one_osint"]
+
+[tool.hatch.build.targets.sdist]
+include = ["data"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
