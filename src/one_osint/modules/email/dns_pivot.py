@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 
 import dns.asyncresolver
@@ -13,6 +14,8 @@ from ...core.detect import domain_from_email
 from ...core.http_client import get_http_client
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
+
+_IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
 
 async def _resolve(domain: str, rtype: str) -> list[str]:
@@ -78,15 +81,30 @@ class DnsPivot(BaseModule):
 
 class IpGeolocation(BaseModule):
     name = "ip_geolocation"
-    description = "Geolocation + ASN/org for the email domain's IP (ipapi.co)"
+    description = "Geolocation + ASN/org for the domain's IP (ipapi.co)"
     input_types = ("email", "domain", "ip")
 
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
+        query = target.strip()
+        if "@" in query:
+            query = query.rsplit("@", 1)[-1]
+        if not _IP_RE.match(query):
+            # a domain was given - resolve it to an address first
+            try:
+                import dns.asyncresolver
+
+                answers = await dns.asyncresolver.resolve(query, "A", lifetime=8)
+                query = str(answers[0])
+            except Exception as exc:
+                result.error = f"could not resolve {query}: {exc}"
+                result.findings.append(Finding(site="ipapi.co", status=Status.ERROR))
+                result.duration = time.perf_counter() - started
+                return result
         try:
-            resp = await http.get(f"https://ipapi.co/{target}/json/")
+            resp = await http.get(f"https://ipapi.co/{query}/json/")
             if resp.status_code != 200:
                 result.error = f"ipapi.co returned {resp.status_code}"
                 result.findings.append(Finding(site="ipapi.co", status=Status.ERROR))
