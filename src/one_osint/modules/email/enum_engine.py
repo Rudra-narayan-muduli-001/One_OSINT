@@ -231,9 +231,12 @@ class EnumEngine:
         missing = any(r.matches(resp.status_code, resp.text, payload) for r in site.not_found)
         extra: dict[str, Any] = {}
         if site.recover:
-            recovered = site.recover(resp.status_code, resp.text, payload)
-            if recovered:
-                extra.update(recovered)
+            try:
+                recovered = site.recover(resp.status_code, resp.text, payload)
+                if recovered:
+                    extra.update(recovered)
+            except Exception:
+                pass
 
         if found and not missing:
             out.append(
