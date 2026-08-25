@@ -13,7 +13,7 @@ import dns.rdatatype
 
 from ...core.config import Settings
 from ...core.http_client import get_http_client
-from ...core.paths import DATA_DIR
+from ...core.paths import CACHE_DIR, DATA_DIR
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -126,14 +126,7 @@ class SubdomainTakeover(BaseModule):
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
-        try:
-            resp = await http.get(
-                "https://raw.githubusercontent.com/edoardottt/awesome-hacker-search-engines/main/README.md",
-                timeout=15,
-            )
-            fingerprints = _load_fingerprints()
-        except Exception:
-            fingerprints = []
+        fingerprints = _load_fingerprints()
         if not fingerprints:
             try:
                 resp = await http.get(
@@ -153,14 +146,19 @@ class SubdomainTakeover(BaseModule):
 
         cname_vuln: set[str] = set()
         for fp in fingerprints:
-            if fp.get("cname") and fp.get("cname") != "cname":
-                cname_vuln.add(fp["cname"].lower())
+            if not fp.get("vulnerable", False):
+                continue
+            cname = fp.get("cname")
+            candidates = cname if isinstance(cname, list) else [cname]
+            for c in candidates:
+                if isinstance(c, str) and c and c != "cname":
+                    cname_vuln.add(c.strip().rstrip(".").lower())
         hits = []
         for cname in cname_vuln:
             host = f"{_slug(cname)}.{target}"
             try:
                 answers = await dns.asyncresolver.resolve(host, "CNAME", lifetime=5)
-                if any(str(r).rstrip(".").lower().endswith(cname.rstrip(".").lower()) for r in answers):
+                if any(str(r).rstrip(".").lower().endswith(cname) for r in answers):
                     hits.append((host, cname))
             except Exception:
                 pass
@@ -176,7 +174,7 @@ class SubdomainTakeover(BaseModule):
         return result
 
 
-_FP_CACHE = DATA_DIR / "takeover_fingerprints.json"
+_FP_CACHE = CACHE_DIR / "takeover_fingerprints.json"
 
 
 def _load_fingerprints() -> list[dict]:
@@ -238,6 +236,7 @@ class SubdomainPassive(BaseModule):
     input_types = ("domain",)
 
     async def check(self, target: str) -> ModuleResult:
+        target = target.strip().lower()
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
