@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from urllib.parse import quote
 
 from ...core.config import Settings
 from ...core.http_client import get_http_client
@@ -23,7 +24,7 @@ class BreachHibp(BaseModule):
         key = self.keys.get("hibp") if self.keys else None
         try:
             resp = await http.get(
-                f"https://haveibeenpwned.com/api/v3/breachedaccount/{target}",
+                f"https://haveibeenpwned.com/api/v3/breachedaccount/{quote(target, safe='')}",
                 headers={"hibp-api-key": key, "user-agent": "one-osint"},
             )
             if resp.status_code == 404:
@@ -71,7 +72,7 @@ class BreachDirectory(BaseModule):
         key = self.keys.get("breachdirectory") if self.keys else None
         try:
             resp = await http.get(
-                f"https://breachdirectory.p.rapidapi.com/?func=auto&term={target}",
+                f"https://breachdirectory.p.rapidapi.com/?func=auto&term={quote(target, safe='')}",
                 headers={"X-RapidAPI-Key": key, "X-RapidAPI-Host": "breachdirectory.p.rapidapi.com"},
             )
             if resp.status_code != 200:
@@ -162,7 +163,7 @@ class PastebinSearch(BaseModule):
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
         try:
-            resp = await http.get(f"https://psbdmp.ws/api/v3/search/{target}")
+            resp = await http.get(f"https://psbdmp.ws/api/v3/search/{quote(target, safe='')}")
             if resp.status_code != 200:
                 result.error = f"psbdmp returned {resp.status_code}"
                 result.findings.append(Finding(site="psbdmp", status=Status.ERROR))
@@ -204,7 +205,7 @@ class HudsonRockStealer(BaseModule):
         headers = {"api-key": key} if key else {}
         try:
             resp = await http.get(
-                f"https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email?email={target}",
+                f"https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email?email={quote(target, safe='')}",
                 headers=headers,
             )
             if resp.status_code != 200:
