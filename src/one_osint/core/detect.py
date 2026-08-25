@@ -13,7 +13,7 @@ _DOMAIN_RE = re.compile(
 _IPV4_RE = re.compile(
     r"^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$"
 )
-_IPV6_RE = re.compile(r"^[0-9A-Fa-f:]{2,39}$")
+_IPV6_RE = re.compile(r"^(?=[0-9A-Fa-f:]*:)[0-9A-Fa-f:]{2,45}$")
 #: local-part variants that make a bare string look like a username first
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{3,64}$")
 
