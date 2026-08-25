@@ -1,17 +1,46 @@
 """API key vault + settings.
 
-Keys are stored in ``keys.yaml`` under the user config dir. Command-line
-precedence: CLI flag > env var > keys file.
+Keys are stored in ``keys.yaml`` under the user config dir, or set as
+environment variables, or placed in a ``.env`` file (project root or user
+config dir). Resolution precedence: CLI flag > env var > ``.env`` > keys file.
 """
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import yaml
 
-from .paths import KEYS_FILE
+from .paths import CONFIG_DIR, KEYS_FILE, PROJECT_ROOT
+
+
+def _load_dotenv(path: Path) -> dict[str, str]:
+    """Minimal .env parser: KEY=VALUE lines, # comments, optional quotes."""
+    loaded: dict[str, str] = {}
+    if not path.is_file():
+        return loaded
+    for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and value:
+            loaded[key] = value
+    return loaded
+
+
+def _apply_env_file(path: Path) -> None:
+    for key, value in _load_dotenv(path).items():
+        os.environ.setdefault(key, value)
+
+
+#: loaded once at import; real environment variables always win over .env
+_apply_env_file(PROJECT_ROOT / ".env")
+_apply_env_file(CONFIG_DIR / ".env")
 
 #: Every API key the modules may need. Format: canonical -> (env var, description)
 SUPPORTED_KEYS: dict[str, tuple[str, str]] = {
