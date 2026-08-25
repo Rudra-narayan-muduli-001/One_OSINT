@@ -54,20 +54,24 @@ class HttpClient:
 
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or Settings()
-        self._clients: dict[bool, httpx.AsyncClient] = {}
+        self._clients: dict[tuple[bool, str | None], httpx.AsyncClient] = {}
         self._session = asyncio.Lock()
 
-    async def _get_client(self, http2: bool = True) -> httpx.AsyncClient:
+    async def _get_client(self, http2: bool = True, proxy: str | None = None) -> httpx.AsyncClient:
+        key = (http2, proxy)
         async with self._session:
-            if http2 not in self._clients:
-                self._clients[http2] = httpx.AsyncClient(
-                    http2=http2,
-                    verify=self.settings.verify_tls,
-                    timeout=httpx.Timeout(self.settings.timeout),
-                    follow_redirects=True,
-                    headers={"Accept-Language": "en-US,en;q=0.9"},
-                )
-            return self._clients[http2]
+            if key not in self._clients:
+                kwargs: dict[str, Any] = {
+                    "http2": http2,
+                    "verify": self.settings.verify_tls,
+                    "timeout": httpx.Timeout(self.settings.timeout),
+                    "follow_redirects": True,
+                    "headers": {"Accept-Language": "en-US,en;q=0.9"},
+                }
+                if proxy:
+                    kwargs["proxy"] = proxy
+                self._clients[key] = httpx.AsyncClient(**kwargs)
+            return self._clients[key]
 
     def _pick_proxy(self) -> str | None:
         if self.settings.tor:
@@ -111,18 +115,13 @@ class HttpClient:
                 proxy=proxy,
             )
 
-        client = await self._get_client(http2=http2)
-        client.headers.update({k: v for k, v in hdrs.items() if k.lower() != "user-agent"})
+        client = await self._get_client(http2=http2, proxy=proxy)
         try:
-            if "User-Agent" in hdrs:
-                client.headers["User-Agent"] = hdrs["User-Agent"]
             kwargs: dict[str, Any] = {"params": params, "headers": hdrs}
             if data is not None:
                 kwargs["data"] = data
             if json is not None:
                 kwargs["json"] = json
-            if proxy:
-                kwargs["proxy"] = proxy if isinstance(proxy, str) else None
             if timeout is not None:
                 kwargs["timeout"] = timeout
             resp = await client.request(method, url, **kwargs)
@@ -188,9 +187,11 @@ _shared: HttpClient | None = None
 
 
 def get_http_client(settings: Settings | None = None) -> HttpClient:
+    """Return a process-wide client so connections are pooled and closable.
+
+    The first caller's settings win; later calls reuse the same client.
+    """
     global _shared
-    if settings is not None:
-        return HttpClient(settings)
     if _shared is None:
-        _shared = HttpClient()
+        _shared = HttpClient(settings)
     return _shared
