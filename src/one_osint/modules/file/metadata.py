@@ -21,13 +21,14 @@ def _gps_to_decimal(value) -> float | None:
 
 
 def _extract_image_meta(path: Path) -> dict:
-    import piexif
-
     out: dict = {}
     try:
+        import piexif
+
         exif_dict = piexif.load(str(path))
     except Exception:
-        return out
+        # piexif only parses JPEG/TIFF - fall back to Pillow for PNG/HEIC/WebP
+        return _extract_image_meta_pillow(path)
     gps = exif_dict.get("GPS", {})
     lat = _gps_to_decimal(gps.get(piexif.GPSIFD.GPSLatitude))
     lon = _gps_to_decimal(gps.get(piexif.GPSIFD.GPSLongitude))
@@ -56,6 +57,49 @@ def _extract_image_meta(path: Path) -> dict:
         out["author"] = ifd0[piexif.ImageIFD.Artist].decode(errors="ignore")
     if ifd0.get(piexif.ImageIFD.Description):
         out["description"] = ifd0[piexif.ImageIFD.Description].decode(errors="ignore")
+    return out
+
+
+def _extract_image_meta_pillow(path: Path) -> dict:
+    from PIL import Image
+    from PIL.ExifTags import TAGS
+
+    out: dict = {}
+    try:
+        img = Image.open(str(path))
+        raw = img.getexif()
+    except Exception:
+        return out
+    for tag_id, value in raw.items():
+        name = TAGS.get(tag_id, str(tag_id))
+        if name in ("Make", "Model", "Software", "Artist"):
+            out[name.lower()] = str(value)
+        elif name == "ImageDescription":
+            out["description"] = str(value)
+    exif = raw.get_ifd(0x8769)
+    for tag_id, value in exif.items():
+        name = TAGS.get(tag_id, str(tag_id))
+        if name == "DateTimeOriginal":
+            out["date_taken"] = str(value)
+        elif name == "LensMake":
+            out["lens"] = str(value)
+    gps_raw = exif.get_ifd(0x8825)
+
+    def _deg(v):
+        try:
+            return float(v[0]) + float(v[1]) / 60 + float(v[2]) / 3600
+        except Exception:
+            return None
+
+    lat = _deg(gps_raw.get(2))
+    lon = _deg(gps_raw.get(4))
+    if lat is not None and lon is not None:
+        if gps_raw.get(3) in ("S", "s"):
+            lat = -lat
+        if gps_raw.get(5) in ("W", "w"):
+            lon = -lon
+        out["gps"] = {"latitude": round(lat, 6), "longitude": round(lon, 6)}
+        out["google_maps"] = f"https://www.google.com/maps?q={lat:.6f},{lon:.6f}"
     return out
 
 
