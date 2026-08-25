@@ -8,6 +8,7 @@ persistence to SQLite.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ from typing import Any
 
 from ..core.config import KeyVault, Settings
 from ..core.detect import InputType
+from ..core.http_client import get_http_client
 from ..core.result import ModuleResult
 from ..core.storage import Storage
 from ..modules.base import BaseModule, discover_modules, get_modules_for
@@ -45,6 +47,15 @@ class Investigation:
                 pass
 
     async def run(self) -> dict[str, Any]:
+        try:
+            return await self._run_pipeline()
+        finally:
+            # release pooled connections so repeated runs don't leak sockets
+            client = get_http_client()
+            with contextlib.suppress(Exception):
+                await client.aclose()
+
+    async def _run_pipeline(self) -> dict[str, Any]:
         inv_id = None
         if self.storage:
             inv_id = self.storage.create_investigation(self.target, self.input_type.value)
@@ -105,7 +116,6 @@ class Investigation:
         await self._emit({"type": "investigation_done", "target": self.target,
                           "investigation_id": inv_id})
         return report
-
     def _build_pipeline(self) -> list[BaseModule]:
         if self.modules:
             wanted = set(self.modules)
