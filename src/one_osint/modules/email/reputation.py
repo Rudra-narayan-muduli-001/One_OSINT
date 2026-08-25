@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from urllib.parse import quote
 
 from ...core.config import Settings
 from ...core.http_client import get_http_client
@@ -23,7 +24,7 @@ class EmailReputation(BaseModule):
         key = self.keys.get("emailrep") if self.keys else None
         try:
             resp = await http.get(
-                f"https://emailrep.io/{target}",
+                f"https://emailrep.io/{quote(target, safe='')}",
                 headers={"Key": key, "Accept": "application/json"},
             )
             if resp.status_code != 200:
