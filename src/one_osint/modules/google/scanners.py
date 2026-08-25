@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from urllib.parse import quote
 
 from ...core.config import Settings
 from ...core.http_client import get_http_client
@@ -20,7 +21,7 @@ class GoogleEmailProbe(BaseModule):
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
         try:
-            resp = await http.get(f"https://mail.google.com/mail/gxlu?email={target}")
+            resp = await http.get(f"https://mail.google.com/mail/gxlu?email={quote(target, safe='')}")
             cookie = resp.headers.get("Set-Cookie", "")
             if resp.status_code == 200 or ("SID" in cookie or "COMPASS" in cookie):
                 result.summary = {"registered": True}
@@ -43,8 +44,8 @@ class GoogleEmailProbe(BaseModule):
 
 class GoogleBssidGeo(BaseModule):
     name = "google_bssid_geo"
-    description = "Wi-Fi BSSID geolocation via Google Geolocation API"
-    input_types = ("ip",)
+    description = "Wi-Fi BSSID (MAC) geolocation via Google Geolocation API - pass a BSSID, not an IP"
+    input_types = ()
     requires_key = "google_geolocation"
 
     async def check(self, target: str) -> ModuleResult:
