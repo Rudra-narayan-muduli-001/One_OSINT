@@ -67,7 +67,7 @@ class ProtonmailLookup(BaseModule):
         result = ModuleResult(name=self.name)
         http = get_http_client(self.settings or Settings())
         try:
-            resp = await http.get(f"https://api.protonmail.ch/pks/lookup?op=get&search={target}")
+            resp = await http.get(f"https://api.protonmail.ch/pks/lookup?op=get&search={quote(target, safe='')}")
             if resp.status_code == 200 and "pub" in resp.text:
                 result.summary = {"proton_account": True, "pgp_key": True}
                 result.findings.append(
@@ -147,8 +147,9 @@ class GoogleDorks(BaseModule):
         for q in queries:
             result.findings.append(
                 Finding(
-                    site="google", status=Status.FOUND, category="dorks",
+                    site="google", status=Status.POSSIBLE, category="dorks",
                     url=f"https://www.google.com/search?q={quote(q)}",
+                    reason="ready-to-run search link (not verified)",
                     extra={"query": q},
                 )
             )
@@ -217,7 +218,7 @@ class DarkWebSearch(BaseModule):
             return result
         http = get_http_client(settings)
         try:
-            resp = await http.get(f"https://ahmia.fi/search/?q={target}", timeout=30)
+            resp = await http.get(f"https://ahmia.fi/search/?q={quote(target, safe='')}", timeout=30)
             if resp.status_code == 200:
                 import re
 
