@@ -121,8 +121,16 @@ class IpReverseDns(BaseModule):
                     Finding(site="dns", url=f"https://{name}", status=Status.FOUND,
                             category="dns", extra={"type": "PTR", "ip": target, "value": name})
                 )
+            if not names:
+                result.findings.append(Finding(site="dns", status=Status.NOT_FOUND, category="dns"))
         except Exception as exc:
-            result.error = str(exc)
-            result.findings.append(Finding(site="dns", status=Status.NOT_FOUND, category="dns"))
+            from dns.exception import DNSException
+
+            nxdomain = isinstance(exc, DNSException) and "NXDOMAIN" in str(getattr(exc, "codes", ()) or "") or "NXDOMAIN" in str(exc)
+            if not nxdomain:
+                result.error = str(exc)
+            result.findings.append(
+                Finding(site="dns", status=Status.NOT_FOUND if nxdomain else Status.ERROR, category="dns")
+            )
         result.duration = time.perf_counter() - started
         return result
