@@ -218,6 +218,6 @@ class WmnChecker:
 
 #: POST-based sites from the dataset need json bodies instead of form data
 _POST_JSON_SITES: dict[str, dict[str, str]] = {
-    "AniList": {"query": 'query {{ User(name: "{account}") {{ id name }} }}'},
+    "AniList": {"query": 'query { User(name: "{account}") { id name } }'},
     "Anime-Planet": {"username": "{account}"},
 }
