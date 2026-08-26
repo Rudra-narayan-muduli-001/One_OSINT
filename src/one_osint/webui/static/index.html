@@ -1,64 +1,16 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>one-osint</title>
-<link rel="stylesheet" href="/static/app.css" />
-</head>
-<body>
-<header>
-  <h1>one-osint</h1>
-  <span class="sub">unified OSINT platform</span>
-  <span id="health" class="status">connecting…</span>
-</header>
-
-<main>
-  <section id="investigate">
-    <h2>New investigation</h2>
-    <form id="form">
-      <label>Target
-        <input id="target" name="target" required placeholder="email, username, domain, ip, phone, file" />
-      </label>
-      <label>Modules (comma-separated, leave empty for all)
-        <input id="modules" name="modules" placeholder="e.g. username_github, email_enumeration" />
-      </label>
-      <fieldset>
-        <legend>Options</legend>
-        <label><input type="checkbox" id="allow_loud" /> allow loud</label>
-        <label><input type="checkbox" id="allow_opt_in" /> allow opt-in</label>
-        <label><input type="checkbox" id="tor" /> use tor</label>
-      </fieldset>
-      <button type="submit">Run</button>
-    </form>
-  </section>
-
-  <section id="live" hidden>
-    <h2>Live progress</h2>
-    <div id="progress">idle</div>
-    <ol id="events"></ol>
-  </section>
-
-  <section id="history">
-    <h2>Past investigations</h2>
-    <p><button id="refresh">Refresh</button></p>
-    <table id="investigations">
-      <thead><tr><th>id</th><th>target</th><th>type</th><th>status</th><th>created</th><th></th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <section id="report" hidden>
-    <h2>Report <span id="report_id"></span></h2>
-    <div class="actions">
-      <button data-fmt="json">json</button>
-      <button data-fmt="md">markdown</button>
-      <button data-fmt="csv">csv</button>
-    </div>
-    <pre id="report_body"></pre>
-  </section>
-</main>
-
-<script type="module" src="/static/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>one-osint — find out what the internet knows</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231E6B4F'/%3E%3Ccircle cx='14' cy='14' r='6.5' fill='none' stroke='white' stroke-width='2.5'/%3E%3Cpath d='m19 19 5 5' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <style>html,body{background:#F7F4EC;margin:0}</style>
+    <script type="module" crossorigin src="/static/assets/index-CxjsMlKh.js"></script>
+    <link rel="stylesheet" crossorigin href="/static/assets/index-BPUYTj_z.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
