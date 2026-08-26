@@ -153,9 +153,10 @@ class PhoneDorks(BaseModule):
                 result.findings.append(
                     Finding(
                         site="google",
-                        status=Status.FOUND,
+                        status=Status.POSSIBLE,
                         category=group,
                         url=f"https://www.google.com/search?q={quote(q)}",
+                        reason="ready-to-run search link (not verified)",
                         extra={"query": q},
                     )
                 )
