@@ -113,7 +113,8 @@ class UsernameMastodon(BaseModule):
         http = get_http_client(self.settings or Settings())
         try:
             resp = await http.get(
-                f"https://mastodon.social/api/v2/search?q={target}&resolve=true&limit=5"
+                "https://mastodon.social/api/v2/search",
+                params={"q": target, "resolve": "true", "limit": 5},
             )
             if resp.status_code == 200:
                 accounts = resp.json().get("accounts", [])
