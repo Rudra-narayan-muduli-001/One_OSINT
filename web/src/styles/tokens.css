@@ -1,0 +1,71 @@
+:root {
+  /* ---- Paper neutrals (warm) ---- */
+  --ink-950:#F7F4EC;      /* page canvas - warm cream */
+  --ink-900:#F1EDE3;      /* recessed panels, table header */
+  --ink-850:#EBE6D9;      /* hover wash */
+  --ink-800:#FFFFFF;      /* card surface */
+  --ink-700:#F5F1E8;      /* subtle fill inside cards */
+  --ink-600:#E7E1D2;      /* input backgrounds */
+  --ink-500:#D9D2BF;      /* hairline borders */
+  --ink-400:#C4BCA6;      /* strong borders */
+  --ink-300:#8D8875;      /* muted text */
+  --ink-200:#5D594B;      /* secondary text */
+  --ink-100:#211F18;      /* primary text - warm ink */
+
+  /* Aliases */
+  --bg:var(--ink-950);
+  --panel:var(--ink-900);
+  --card:var(--ink-800);
+  --elev:var(--ink-700);
+  --input-bg:#FFFFFF;
+  --border:var(--ink-500);
+  --border-strong:var(--ink-400);
+  --text-1:var(--ink-100);
+  --text-2:var(--ink-200);
+  --text-3:var(--ink-300);
+  --text-disabled:#A79F8A;
+  --text-inverse:#FBFAF6;
+
+  /* Accents */
+  --accent:#1E6B4F;        /* deep forest green - primary actions */
+  --accent-hover:#17573F;
+  --accent-active:#114633;
+  --accent-tint:#E4EFE7;   /* pale green wash */
+  --violet:#6B5E4E;        /* warm bronze for secondary marks */
+  --violet-hover:#55483A;
+  --violet-tint:#EEE8DC;
+
+  /* Semantic */
+  --ok:#1E6B4F;   --ok-text:#14523B;  --ok-tint:#E4EFE7;  --ok-border:#BCD6C6;
+  --warn:#9A6200; --warn-text:#7A4E04;--warn-tint:#F7EDD6;--warn-border:#E3CD9A;
+  --crit:#B3401F; --crit-text:#8F3115;--crit-tint:#F8E5DD;--crit-border:#EBC4B2;
+  --info:#2C5D8A; --info-text:#27527A;--info-tint:#E3ECF4;--info-border:#BAD0E2;
+  --run:#1E6B4F;
+
+  /* Typography */
+  --font-ui:'Public Sans','Segoe UI',system-ui,-apple-system,sans-serif;
+  --font-serif:'Fraunces',Georgia,'Iowan Old Style','Times New Roman',serif;
+  --font-mono:'Spline Sans Mono',ui-monospace,'Cascadia Mono',Consolas,monospace;
+
+  /* Radii & shadows - paper feel: small radii, soft diffuse shadows */
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-full:999px;
+  --shadow-1:0 1px 2px rgba(60,52,32,.06),0 2px 8px rgba(60,52,32,.05);
+  --shadow-2:0 2px 6px rgba(60,52,32,.08),0 10px 30px rgba(60,52,32,.09);
+  --shadow-3:0 6px 16px rgba(60,52,32,.12),0 24px 56px rgba(60,52,32,.14);
+  --ring:0 0 0 2px var(--bg),0 0 0 4px var(--accent);
+  --glow-accent:none;
+
+  /* Layout */
+  --sidebar-w:232px;
+  --sidebar-rail:64px;
+  --topbar-h:58px;
+  --content-max:1180px;
+  --drawer-h:200px;
+
+  /* Z scale */
+  --z-topbar:50; --z-targetbar:40; --z-drawer:45;
+  --z-modal:100; --z-toast:110; --z-palette:120;
+
+  /* Motion */
+  --t-fast:120ms; --t-med:200ms; --t-slow:320ms;
+}
