@@ -1,145 +1,187 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { api } from './api.js'
+import { RunProvider, useRun } from './state.jsx'
+import CommandPalette from './components/CommandPalette.jsx'
+import Investigate from './screens/Investigate.jsx'
+import History from './screens/History.jsx'
+import Report from './screens/Report.jsx'
+import Keys from './screens/Keys.jsx'
+import {
+  ICrosshair,IHistory,IKey,IActivity,IPanel,ISearch,
+} from './icons.jsx'
 
-const STATUS_ICON = { found: '🟢', not_found: '⚪', error: '🔴', skipped: '🟡' }
+const NAV = [
+  { route:'investigate', label:'New search', Icon:ISearch },
+  { route:'history', label:'Past searches', Icon:IHistory },
+  { route:'keys', label:'Optional keys', Icon:IKey },
+]
 
-function detectType(value) {
-  if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value)) return 'email'
-  if (/^\+?[0-9][0-9\s().-]{5,}$/.test(value) && value.replace(/\D/g, '').length > 10) return 'phone'
-  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(value)) return 'ip'
-  if (/^(?!-)([a-z0-9-]{1,63}\.)+[a-z]{2,}$/i.test(value)) return 'domain'
-  if (/^[A-Za-z0-9_.-]{3,64}$/.test(value)) return 'username'
-  return 'unknown'
+function parseHash(){
+  const h = location.hash.replace(/^#\/?/,'')
+  const [route,query] = h.split('?')
+  const parts = (route||'').split('/').filter(Boolean)
+  return { page:parts[0]||'investigate', arg:parts[1]||null, query }
 }
 
-function FindingRow({ f }) {
-  const extra = f.extra && Object.keys(f.extra).length
-    ? JSON.stringify(f.extra).slice(0, 250)
-    : null
-  return (
-    <div className="finding">
-      <span className={`st st-${f.status}`}>{STATUS_ICON[f.status] || ''} {f.status}</span>
-      <span className="site">{f.site}</span>
-      {f.url && <a className="url" href={f.url} target="_blank" rel="noreferrer">{f.url}</a>}
-      {extra && <span className="extra">{extra}</span>}
-    </div>
-  )
-}
+export default function App(){
+  const [route,setRoute] = useState(parseHash)
+  const [rail,setRail] = useState(()=>localStorage.getItem('signal.rail')==='1')
+  const [health,setHealth] = useState({ ok:null,version:'' })
+  const [paletteOpen,setPaletteOpen] = useState(false)
 
-function ModuleCard({ mod, events }) {
-  const status = mod.error ? 'error' : mod.findings?.length > 0 ? 'done' : mod.skipped ? 'skipped' : 'done'
-  const findings = mod.findings || []
-  const isRunning = events.some((e) => e.type === 'module_start' && e.module === mod.name && !events.some(
-    (e2) => e2.type === 'module_done' && e2.module === mod.name
-  ))
-  return (
-    <div className="module">
-      <div className="module-header">
-        <span className={`dot ${isRunning ? 'running' : status === 'error' ? 'error' : 'done'}`} />
-        <span className="module-name">{mod.name}</span>
-        {mod.error && <span style={{ color: '#f87171', fontSize: '0.78rem' }}>error: {mod.error}</span>}
-        {mod.summary && Object.keys(mod.summary).length > 0 && (
-          <span className="module-meta">{JSON.stringify(mod.summary).slice(0, 120)}</span>
-        )}
-        <span className="module-meta">{mod.duration?.toFixed(1)}s · {findings.length} findings</span>
-      </div>
-      {findings.slice(0, 50).map((f, i) => <FindingRow key={i} f={f} />)}
-      {findings.length > 50 && (
-        <div className="finding" style={{ color: '#8b93a3' }}>+{findings.length - 50} more…</div>
-      )}
-    </div>
-  )
-}
+  useEffect(()=>{
+    const onHash = ()=>setRoute(parseHash())
+    window.addEventListener('hashchange',onHash)
+    return ()=>window.removeEventListener('hashchange',onHash)
+  },[])
 
-export default function App() {
-  const [target, setTarget] = useState('')
-  const [invId, setInvId] = useState(null)
-  const [report, setReport] = useState(null)
-  const [events, setEvents] = useState([])
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const wsRef = useRef(null)
+  useEffect(()=>{
+    localStorage.setItem('signal.rail',rail?'1':'0')
+  },[rail])
 
-  const connect = useCallback((id) => {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-    const ws = new WebSocket(`${proto}://${location.host}/ws/investigate/${id}`)
-    ws.onmessage = (msg) => {
-      const event = JSON.parse(msg.data)
-      setEvents((prev) => [...prev, event])
-      if (event.type === 'investigation_done') {
-        fetch(`/api/report/${id}`).then((r) => r.json()).then((data) => {
-          setReport(data)
-          setLoading(false)
-        }).catch(() => setLoading(false))
+  useEffect(()=>{
+    let stop = false
+    const ping = ()=>api.health()
+      .then(h=>{ if(!stop) setHealth({ ok:true,version:h.version }) })
+      .catch(()=>{ if(!stop) setHealth({ ok:false,version:'' }) })
+    ping()
+    const iv = setInterval(ping,20000)
+    return ()=>{ stop = true; clearInterval(iv) }
+  },[])
+
+  useEffect(()=>{
+    const onKey = (e)=>{
+      const editable = ['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName) || e.target.isContentEditable
+      if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+        e.preventDefault(); setPaletteOpen(o=>!o); return
+      }
+      if(e.key==='/' && !editable){
+        e.preventDefault()
+        location.hash = '#/investigate'
+        setTimeout(()=>window.dispatchEvent(new Event('signal:focus-search')),50)
       }
     }
-    ws.onerror = () => { setLoading(false) }
-    wsRef.current = ws
-  }, [])
+    window.addEventListener('keydown',onKey)
+    return ()=>window.removeEventListener('keydown',onKey)
+  },[])
 
-  useEffect(() => () => wsRef.current?.close(), [])
-
-  const start = async () => {
-    setError(null)
-    setEvents([])
-    setReport(null)
-    setLoading(true)
-    const res = await fetch('/api/investigate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target }),
-    })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      setError(body.detail || `HTTP ${res.status}`)
-      setLoading(false)
-      return
-    }
-    const data = await res.json()
-    setInvId(data.investigation_id)
-    connect(data.investigation_id)
-  }
-
-  const type = detectType(target)
-  const running = events.some((e) => e.type === 'module_start')
+  const navigate = useCallback((r)=>{ location.hash = `#/${r}` },[])
+  const crumb = CRUMBS[route.page] || 'Search'
 
   return (
-    <div className="app">
-      <h1>one-<span>osint</span></h1>
-      <p className="subtitle">Unified OSINT investigations — email · username · phone · domain · IP · file</p>
-
-      <div className="searchbar">
-        <input
-          placeholder="user@example.com, @username, +33612345678, example.com, 1.2.3.4, /path/to/file.jpg"
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && start()}
-        />
-        <button onClick={start} disabled={loading || !target.trim()}>
-          {loading ? 'Running…' : 'Investigate'}
-        </button>
-      </div>
-      {type !== 'unknown' && target && <span className="type-badge">{type}</span>}
-      {error && <div className="error-box">{error}</div>}
-
-      {!report && !loading && !error && <div className="empty">Enter a target to begin.</div>}
-
-      {loading && !report && <div className="empty" style={{ color: '#f0b429' }}>Investigating…</div>}
-
-      {report && (
-        <>
-          <div className="stats">
-            <div className="stat"><div className="num">{report.found_accounts}</div><div className="lbl">Findings</div></div>
-            <div className="stat"><div className="num">{report.module_count}</div><div className="lbl">Modules</div></div>
-            <div className="stat"><div className="num">{report.pivots?.emails?.length || 0}</div><div className="lbl">Pivots</div></div>
-            <div className="stat"><div className="num">{report.created_at?.slice(0, 10)}</div><div className="lbl">Date</div></div>
+    <RunProvider>
+      <div className={`shell${rail?' rail':''}`}>
+        <aside className="sidebar">
+          <div className="side-logo">
+            <span className="logo-mark"><ISearch size={16}/></span>
+            <span className="logo-word"><b>one-osint</b><span>find anything</span></span>
           </div>
-          <div className="modules">
-            {report.modules.map((mod, i) => (
-              <ModuleCard key={i} mod={mod} events={events} />
+          <nav className="sidenav">
+            {NAV.map(n=>(
+              <a
+                key={n.route}
+                className={`navitem${route.page===n.route?' active':''}`}
+                href={`#/${n.route}`}
+              >
+                <n.Icon size={18}/>
+                <span className="navlabel">{n.label}</span>
+              </a>
             ))}
+            <span className="microlabel">System</span>
+            <button
+              className="navitem"
+              onClick={()=>setPaletteOpen(true)}
+            >
+              <IActivity size={18}/>
+              <span className="navlabel">Commands</span>
+            </button>
+          </nav>
+          <div className="side-foot" title={health.ok?'API reachable':'API unreachable'}>
+            <i className={`health-dot${health.ok===false?' down':''}`}/>
+            <span className="health-label">{health.ok===false?'API offline':'API online'}{health.version?` · v${health.version}`:''}</span>
           </div>
-        </>
-      )}
-    </div>
+        </aside>
+
+        <div className="main">
+          <TopProgress/>
+          <header className="topbar">
+            <button className="iconbtn" onClick={()=>setRail(r=>!r)} aria-label="Toggle sidebar" title="Toggle sidebar">
+              <IPanel size={17}/>
+            </button>
+            <span className="crumb"><b>{crumb}</b></span>
+            <span className="topbar-spacer"/>
+            <button className="kbd-btn" onClick={()=>setPaletteOpen(true)}>
+              <ISearch size={14}/>
+              Search or jump to…
+              <kbd>⌘K</kbd>
+            </button>
+          </header>
+          <main className="content" key={`${route.page}/${route.arg||''}`}>
+            <ErrorBoundary>
+              <Screen route={route} navigate={navigate}/>
+            </ErrorBoundary>
+          </main>
+        </div>
+      </div>
+
+      <PaletteHost open={paletteOpen} onClose={()=>setPaletteOpen(false)} navigate={navigate}/>
+    </RunProvider>
+  )
+}
+
+function Screen({ route,navigate }){
+  switch(route.page){
+    case 'history': return <History navigate={navigate}/>
+    case 'report': return route.arg ? <Report id={route.arg} navigate={navigate}/> : <Investigate/>
+    case 'keys': return <Keys/>
+    default: return <Investigate/>
+  }
+}
+
+class ErrorBoundary extends React.Component{
+  constructor(props){
+    super(props)
+    this.state = { error:null }
+  }
+  static getDerivedStateFromError(error){ return { error } }
+  componentDidCatch(error,info){ console.error('UI crash:',error,info?.componentStack) }
+  render(){
+    if(this.state.error){
+      return (
+        <div className="card" style={{ padding:24 }}>
+          <h2 style={{ fontFamily:'var(--font-serif)',fontSize:19,marginBottom:8 }}>Something went wrong showing this page</h2>
+          <p style={{ fontSize:13,color:'var(--text-3)',marginBottom:12 }}>The error below was logged to the browser console (F12). Your data is safe.</p>
+          <pre className="mono" style={{ whiteSpace:'pre-wrap',wordBreak:'break-word',fontSize:11.5,color:'var(--crit-text)',background:'var(--panel)',border:'1px solid var(--border)',borderRadius:10,padding:14 }}>{String(this.state.error?.message||this.state.error)}</pre>
+          <button className="btn btn-primary btn-sm" style={{ marginTop:14 }} onClick={()=>{ this.setState({error:null}); location.hash='#/investigate' }}>Back to search</button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+const CRUMBS = { investigate:'New search', history:'Past searches', report:'Report', keys:'Optional keys' }
+
+function TopProgress(){
+  const run = useRun()
+  if(!['starting','running'].includes(run.run.phase)) return null
+  return <div className="progressline"><i/></div>
+}
+
+function PaletteHost({ open,onClose,navigate }){
+  const run = useRun()
+  const lastReportId = run.run.invId || null
+  const onRun = async(target)=>{
+    await run.start(target)
+    navigate('investigate')
+  }
+  return (
+    <CommandPalette
+      open={open}
+      onClose={onClose}
+      navigate={(r)=>navigate(r)}
+      onRun={onRun}
+      lastReportId={lastReportId}
+    />
   )
 }
