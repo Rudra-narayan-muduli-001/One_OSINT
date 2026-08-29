@@ -8,13 +8,16 @@ version = "0.1.0"
 description = "Unified OSINT platform - email, username, phone, domain, IP and Google intelligence in one tool"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = { text = "CC-BY-NC-4.0" }
 authors = [{ name = "one-osint" }]
 keywords = ["osint", "intelligence", "reconnaissance", "email", "username", "phone", "domain"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
+    "License :: Free for non-commercial use",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Telecommunications Industry",
 ]
 
 dependencies = [
