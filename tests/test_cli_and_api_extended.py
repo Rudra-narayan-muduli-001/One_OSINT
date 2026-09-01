@@ -235,4 +235,5 @@ class TestDetectEdgeCases:
         assert detect_input_type("+12") == InputType.UNKNOWN
         # Digits only long enough but without +
         assert detect_input_type("12345678901") == InputType.PHONE  # 11 digits >10 => phone
-        assert detect_input_type("12345") == InputType.UNKNOWN
+        # 5-digit numeric string matches username pattern, not unknown
+        assert detect_input_type("12345") == InputType.USERNAME
