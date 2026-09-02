@@ -46,8 +46,8 @@ def _extract_image_meta(path: Path) -> dict:
         out["date_taken"] = exif[piexif.ExifIFD.DateTimeOriginal].decode(errors="ignore")
     if exif.get(piexif.ExifIFD.LensMake):
         out["lens"] = exif[piexif.ExifIFD.LensMake].decode(errors="ignore")
-    if exif.get(piexif.ExifIFD.Model):
-        out["camera_model"] = exif[piexif.ExifIFD.Model].decode(errors="ignore")
+    # Note: ExifIFD has no 'Model' tag — camera model lives in 0th IFD
+    # so this branch is intentionally omitted (previously caused AttributeError)
     ifd0 = exif_dict.get("0th", {})
     if ifd0.get(piexif.ImageIFD.Make):
         out["camera_make"] = ifd0[piexif.ImageIFD.Make].decode(errors="ignore")
@@ -55,8 +55,8 @@ def _extract_image_meta(path: Path) -> dict:
         out["software"] = ifd0[piexif.ImageIFD.Software].decode(errors="ignore")
     if ifd0.get(piexif.ImageIFD.Artist):
         out["author"] = ifd0[piexif.ImageIFD.Artist].decode(errors="ignore")
-    if ifd0.get(piexif.ImageIFD.Description):
-        out["description"] = ifd0[piexif.ImageIFD.Description].decode(errors="ignore")
+    if ifd0.get(piexif.ImageIFD.ImageDescription):
+        out["description"] = ifd0[piexif.ImageIFD.ImageDescription].decode(errors="ignore")
     return out
 
 
