@@ -33,7 +33,10 @@ All engines run **concurrently** (`asyncio` + bounded semaphore), share one stea
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS/Linux
-pip install -e ".[dev]"
+pip install -e ".[dev]"         # editable + dev tools (pytest, respx, ruff, mypy)
+# — or pinned runtime only —
+# pip install -r requirements.txt
+# pip install -e . --no-deps
 
 # 2. Investigate anything — type is auto-detected
 one-osint investigate user@example.com
@@ -58,8 +61,11 @@ one-osint keys --list
 **Requirements:** Python ≥ 3.12
 
 ```bash
-pip install -e .                # runtime
+pip install -e .                # runtime (resolves deps from pyproject.toml)
 pip install -e ".[dev]"         # + pytest, respx, ruff, mypy
+# — or pinned runtime without editable install —
+pip install -r requirements.txt # pinned versions, then:
+pip install -e . --no-deps      # register the `one-osint` package itself
 ```
 
 `run.py` at the repo root re-executes under `.venv` automatically, so bare
