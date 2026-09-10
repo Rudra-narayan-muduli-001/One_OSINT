@@ -1,11 +1,3 @@
-"""Stealth HTTP client.
-
-- curl_cffi Chrome impersonation for bot-walled endpoints
-- httpx (HTTP/2) for the rest
-- per-request random User-Agent (or fixed), proxy rotation, retries,
-  session-scoped cookie handling
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -19,11 +11,11 @@ import httpx
 from .config import Settings
 from .useragent import random_user_agent
 
-try:  # optional heavy dependency - fall back to httpx if unavailable
+try:
     from curl_cffi import requests as curl_requests
 
     _HAS_CURL = True
-except ImportError:  # pragma: no cover
+except ImportError:
     _HAS_CURL = False
 
 
@@ -50,8 +42,6 @@ class Response:
 
 
 class HttpClient:
-    """Async HTTP client with stealth + proxy + retry. Thread-safe per task."""
-
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or Settings()
         self._clients: dict[tuple[bool, str | None], httpx.AsyncClient] = {}
@@ -101,7 +91,6 @@ class HttpClient:
         proxy = self._pick_proxy()
 
         if impersonate and _HAS_CURL:
-            # curl_cffi sync - run in a thread executor to keep the event loop free
             return await asyncio.to_thread(
                 self._curl_request,
                 method,
@@ -148,7 +137,6 @@ class HttpClient:
         timeout: float | None,
         proxy: str | None,
     ) -> Response:
-
         kwargs: dict[str, Any] = {
             "headers": headers,
             "params": params,
@@ -187,10 +175,6 @@ _shared: HttpClient | None = None
 
 
 def get_http_client(settings: Settings | None = None) -> HttpClient:
-    """Return a process-wide client so connections are pooled and closable.
-
-    The first caller's settings win; later calls reuse the same client.
-    """
     global _shared
     if _shared is None:
         _shared = HttpClient(settings)

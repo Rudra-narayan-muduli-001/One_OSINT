@@ -1,10 +1,3 @@
-"""Structured result types shared across all modules.
-
-Every module returns a list of :class:`Finding` objects plus optional
-enrichment data. Findings are unified so the orchestrator, exporters and
-web UI all consume one schema.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -31,8 +24,6 @@ class ModuleStatus(StrEnum):
 
 @dataclass(slots=True)
 class Finding:
-    """One discrete result row: an account, a record, an entry."""
-
     site: str
     url: str | None = None
     status: Status = Status.FOUND
@@ -55,8 +46,6 @@ class Finding:
 
 @dataclass(slots=True)
 class ModuleResult:
-    """Result bundle returned by one module run."""
-
     name: str
     findings: list[Finding] = field(default_factory=list)
     summary: dict[str, Any] = field(default_factory=dict)

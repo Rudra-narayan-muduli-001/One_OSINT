@@ -1,5 +1,3 @@
-"""SQLite persistence: investigations, module runs, findings."""
-
 from __future__ import annotations
 
 import json
@@ -16,8 +14,6 @@ def _now() -> str:
 
 
 class Storage:
-    """Thin SQLite wrapper. One connection per call - safe across threads/tasks."""
-
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or DB_FILE
         self._ensure_schema()

@@ -1,10 +1,3 @@
-"""API key vault + settings.
-
-Keys are stored in ``keys.yaml`` under the user config dir, or set as
-environment variables, or placed in a ``.env`` file (project root or user
-config dir). Resolution precedence: CLI flag > env var > ``.env`` > keys file.
-"""
-
 from __future__ import annotations
 
 import os
@@ -17,7 +10,6 @@ from .paths import CONFIG_DIR, KEYS_FILE, PROJECT_ROOT
 
 
 def _load_dotenv(path: Path) -> dict[str, str]:
-    """Minimal .env parser: KEY=VALUE lines, # comments, optional quotes."""
     loaded: dict[str, str] = {}
     if not path.is_file():
         return loaded
@@ -38,11 +30,9 @@ def _apply_env_file(path: Path) -> None:
         os.environ.setdefault(key, value)
 
 
-#: loaded once at import; real environment variables always win over .env
 _apply_env_file(PROJECT_ROOT / ".env")
 _apply_env_file(CONFIG_DIR / ".env")
 
-#: Every API key the modules may need. Format: canonical -> (env var, description)
 SUPPORTED_KEYS: dict[str, tuple[str, str]] = {
     "hibp": ("HIBP_API_KEY", "HaveIBeenPwned v3"),
     "emailrep": ("EMAILREP_API_KEY", "EmailRep.io"),
@@ -65,8 +55,6 @@ SUPPORTED_KEYS: dict[str, tuple[str, str]] = {
 
 @dataclass
 class KeyVault:
-    """Loads and resolves API keys from file, env and explicit values."""
-
     overrides: dict[str, str] = field(default_factory=dict)
     _file_data: dict[str, str] = field(default_factory=dict, init=False)
 
@@ -79,7 +67,6 @@ class KeyVault:
                 self._file_data = {}
 
     def get(self, name: str) -> str | None:
-        """Resolve a key: override > env > keys file."""
         if name in self.overrides and self.overrides[name]:
             return self.overrides[name]
         spec = SUPPORTED_KEYS.get(name)
@@ -127,8 +114,6 @@ class KeyVault:
 
 @dataclass
 class Settings:
-    """Runtime settings (proxies, concurrency, stealth)."""
-
     concurrency: int = 30
     timeout: float = 15.0
     max_retries: int = 2

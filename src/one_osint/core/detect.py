@@ -1,5 +1,3 @@
-"""Input type detection: route a raw string to the right engine."""
-
 from __future__ import annotations
 
 import re
@@ -14,7 +12,6 @@ _IPV4_RE = re.compile(
     r"^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$"
 )
 _IPV6_RE = re.compile(r"^(?=[0-9A-Fa-f:]*:)[0-9A-Fa-f:]{2,45}$")
-#: local-part variants that make a bare string look like a username first
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_.\-]{3,64}$")
 
 
@@ -29,7 +26,6 @@ class InputType(StrEnum):
 
 
 def detect_input_type(value: str) -> InputType:
-    """Classify an investigation target string."""
     value = value.strip()
     if not value:
         return InputType.UNKNOWN
@@ -38,7 +34,6 @@ def detect_input_type(value: str) -> InputType:
     if _PHONE_RE.match(value) and any(c.isdigit() for c in value):
         digits = re.sub(r"\D", "", value)
         if 7 <= len(digits) <= 15:
-            # A string of digits could be a username; require '+' or length > 10
             if value.startswith("+") or len(digits) > 10:
                 return InputType.PHONE
     if _IPV4_RE.match(value) or _IPV6_RE.match(value):

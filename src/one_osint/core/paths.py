@@ -1,5 +1,3 @@
-"""Paths and runtime locations for one-osint."""
-
 from __future__ import annotations
 
 import os
@@ -13,16 +11,13 @@ else:
 
 
 def _project_root() -> Path:
-    # src/one_osint/core -> project root
     return Path(__file__).resolve().parents[3]
 
 
 PROJECT_ROOT = _project_root()
 
-#: Repo data directory (bundled datasets, wordlists, user agents)
 DATA_DIR = Path(os.environ.get("ONE_OSINT_DATA", PROJECT_ROOT / "data"))
 
-#: User-writable config/keys/results location
 CONFIG_DIR = Path(os.environ.get("ONE_OSINT_CONFIG", _CONFIG_ROOT))
 
 KEYS_FILE = CONFIG_DIR / "keys.yaml"

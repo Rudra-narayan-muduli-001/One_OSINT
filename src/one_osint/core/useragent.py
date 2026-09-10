@@ -1,5 +1,3 @@
-"""User-Agent pool and browser impersonation."""
-
 from __future__ import annotations
 
 import random
