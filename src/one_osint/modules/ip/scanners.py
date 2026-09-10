@@ -1,5 +1,3 @@
-"""IP intelligence: WHOIS, Shodan host/ports, DNS reverse, DNSInf bundle."""
-
 from __future__ import annotations
 
 import time

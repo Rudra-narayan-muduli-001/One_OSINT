@@ -1,5 +1,3 @@
-"""Miscellaneous OSINT modules: GitHub, ProtonMail, VIN, dorks, plates."""
-
 from __future__ import annotations
 
 import time

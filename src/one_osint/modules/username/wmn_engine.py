@@ -1,11 +1,3 @@
-"""WhatsMyName dataset loader and presence-check engine.
-
-Implements the proven dual-marker detection logic: an account is FOUND only
-when the exists-markers match (``e_code``/``e_string``) AND the missing
-markers do not (``m_code``/``m_string``). Supports GET and POST entries,
-username sanitisation (``strip_bad_char``) and custom headers.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -94,7 +86,6 @@ _META: dict[str, dict[str, Any]] | None = None
 
 
 def load_metadata() -> dict[str, dict[str, Any]]:
-    """Load wmn-metadata.json (per-site metadata extraction rules)."""
     global _META
     if _META is None:
         if METADATA_FILE.exists():
@@ -117,7 +108,6 @@ def _fold(value: str) -> str:
 
 
 def check_content_negative(username: str, content: str, site: WmnSite) -> bool:
-    """Extra negative heuristic: profile page mentioning 'not found' etc."""
     folded = _fold(content)
     pats = [
         f"user {_fold(username)} not found",
@@ -128,8 +118,6 @@ def check_content_negative(username: str, content: str, site: WmnSite) -> bool:
 
 
 class WmnChecker:
-    """Async presence checker over the full WhatsMyName dataset."""
-
     def __init__(self, http: HttpClient, max_concurrent: int = 30) -> None:
         self.http = http
         self.sem = asyncio.Semaphore(max_concurrent)
@@ -216,7 +204,6 @@ class WmnChecker:
         return None
 
 
-#: POST-based sites from the dataset need json bodies instead of form data
 _POST_JSON_SITES: dict[str, dict[str, str]] = {
     "AniList": {"query": 'query { User(name: "{account}") { id name } }'},
     "Anime-Planet": {"username": "{account}"},

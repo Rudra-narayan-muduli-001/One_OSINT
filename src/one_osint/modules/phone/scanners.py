@@ -1,5 +1,3 @@
-"""Phone number modules: local parse, numverify, OVH, dorks, Google CSE."""
-
 from __future__ import annotations
 
 import time

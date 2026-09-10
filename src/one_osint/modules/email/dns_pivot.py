@@ -1,5 +1,3 @@
-"""Domain pivot from email: DNS records, MX validation, SPF/DMARC, IP geo."""
-
 from __future__ import annotations
 
 import asyncio
@@ -92,7 +90,6 @@ class IpGeolocation(BaseModule):
         if "@" in query:
             query = query.rsplit("@", 1)[-1]
         if not _IP_RE.match(query):
-            # a domain was given - resolve it to an address first
             try:
                 import dns.asyncresolver
 

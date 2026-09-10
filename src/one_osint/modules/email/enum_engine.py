@@ -1,12 +1,3 @@
-"""Email registration-enumeration engine.
-
-Data-driven framework: each site is a declarative spec (endpoint, method,
-detection rules, optional recovery-data extraction). Detection follows the
-proven pattern - a FOUND verdict requires a positive marker AND no
-negative marker. Quiet flows only by default (``loud`` sites must be
-opted in via settings).
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -19,12 +10,11 @@ from typing import Any
 from ...core.http_client import HttpClient
 
 
-#: markers - kind in {"status", "string", "json", "regex"}
 @dataclass(slots=True)
 class Rule:
     kind: str
     value: Any
-    path: str | None = None  # dot path for json rules
+    path: str | None = None
 
     def matches(self, status: int, content: str, payload: Any) -> bool:
         if self.kind == "status":
@@ -53,7 +43,6 @@ class Rule:
         return False
 
 
-#: recovery extraction helpers - return extra dict or None
 RecoveryFn = Callable[[int, str, Any], dict[str, Any] | None]
 
 _RE_EMAIL = re.compile(r"([A-Za-z0-9._%+\-*]+\*?@[A-Za-z0-9.\-*]+\.[A-Za-z*]{2,})")
@@ -73,8 +62,6 @@ def _recovery_from_body(body: str) -> dict[str, Any] | None:
 
 @dataclass(slots=True)
 class PreCheck:
-    """Acquire cookies before the main request (CSRF flows)."""
-
     url: str
     cookie_names: tuple[str, ...] = ()
 
@@ -83,7 +70,7 @@ class PreCheck:
 class EnumSite:
     name: str
     category: str
-    method: str = "probe"  # probe | register | login | recovery
+    method: str = "probe"
     url: str = ""
     http_method: str = "GET"
     params: dict[str, Any] = field(default_factory=dict)
@@ -94,7 +81,7 @@ class EnumSite:
     not_found: list[Rule] = field(default_factory=list)
     recover: RecoveryFn | None = None
     pre_check: PreCheck | None = None
-    input_operation: str | None = None  # hash-sha256 | hash-md5
+    input_operation: str | None = None
     loud: bool = False
     impersonate: str | None = None
 
@@ -114,12 +101,10 @@ class EmailHit:
     exists: bool
     url: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
-    status: str = "found"  # found | not_found | rate_limited | error | skipped
+    status: str = "found"
 
 
 class EnumEngine:
-    """Runs a set of EnumSite definitions against one email."""
-
     def __init__(self, http: HttpClient, max_concurrent: int = 25) -> None:
         self.http = http
         self.sem = asyncio.Semaphore(max_concurrent)

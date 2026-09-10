@@ -1,10 +1,3 @@
-"""Module contract and registry.
-
-Every module subclasses :class:`BaseModule` and overrides :meth:`check`.
-Modules are auto-discovered from the ``modules`` package by scanning
-subclasses, so adding a capability = dropping in one file.
-"""
-
 from __future__ import annotations
 
 import importlib
@@ -20,17 +13,10 @@ if TYPE_CHECKING:
 
 
 class BaseModule(ABC):
-    """Base for all OSINT modules."""
-
-    #: machine name, e.g. "email_github"
     name: str = ""
-    #: human description shown in `modules` listing
     description: str = ""
-    #: input types this module can process
     input_types: tuple[str, ...] = ("email", "username", "phone", "domain", "ip", "file")
-    #: requires explicit opt-in (e.g. loud / paid / credential-based)
     opt_in: bool = False
-    #: requires an API key; skipped when missing
     requires_key: str | None = None
 
     def __init__(self, keys: KeyVault | None = None, settings: Settings | None = None) -> None:
@@ -46,7 +32,6 @@ class BaseModule(ABC):
 
     @abstractmethod
     async def check(self, target: str) -> ModuleResult:
-        """Run the module against one target and return results."""
         raise NotImplementedError
 
 
@@ -54,7 +39,6 @@ _MODULES: dict[str, type[BaseModule]] | None = None
 
 
 def discover_modules() -> dict[str, type[BaseModule]]:
-    """Import every submodule under ``modules`` and index BaseModule subclasses."""
     global _MODULES
     if _MODULES is not None:
         return _MODULES
@@ -89,7 +73,6 @@ def get_modules_for(
     settings=None,
     allow_opt_in: bool = False,
 ) -> list[BaseModule]:
-    """Instantiate all modules that can process ``input_type``."""
     out: list[BaseModule] = []
     for _name, cls in sorted(discover_modules().items()):
         mod = cls(keys=keys, settings=settings)

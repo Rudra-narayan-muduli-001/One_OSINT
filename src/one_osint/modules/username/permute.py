@@ -1,18 +1,9 @@
-"""Username permutation generation (blackbird/user-scanner style)."""
-
 from __future__ import annotations
 
 from itertools import permutations
 
 
 def permute_username(username: str, *, all_variants: bool = False) -> list[str]:
-    """Generate username variations.
-
-    Restricted mode (default): only insert separators when the username
-    contains at least two word-ish chunks (e.g. ``john.doe`` -> john_doe).
-    ``all_variants`` generates everything: reorderings, separator
-    substitutions, doubled separators.
-    """
     if not username:
         return []
     base = username.replace("_", ".").replace("-", ".").lower()

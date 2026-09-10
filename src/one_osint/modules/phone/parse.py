@@ -1,5 +1,3 @@
-"""Phone number parsing, validation and Google dork generation."""
-
 from __future__ import annotations
 
 import phonenumbers
@@ -27,7 +25,6 @@ FILE_TYPES = ["doc", "docx", "odt", "pdf", "rtf", "sxw", "psw", "ppt", "pptx", "
 
 
 def parse_number(raw: str) -> dict | None:
-    """Parse and validate an international phone number."""
     clean = raw.replace(" ", "").replace("-", "").replace("(", "").replace(")", "")
     try:
         num = phonenumbers.parse(clean, None)
@@ -78,7 +75,6 @@ def _line_type(num) -> str:
 
 
 def build_dorks(number: str) -> dict[str, list[str]]:
-    """Generate Google dork queries for a phone number (phoneinfoga-style)."""
     e164 = number.replace(" ", "")
     local = number.split()[-1] if " " in number else number
     clean = "".join(c for c in number if c.isdigit() or c == "+")

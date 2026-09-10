@@ -1,5 +1,3 @@
-"""Google intelligence: account registration probe, BSSID geolocation."""
-
 from __future__ import annotations
 
 import time

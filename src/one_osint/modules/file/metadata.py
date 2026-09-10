@@ -1,5 +1,3 @@
-"""File metadata: EXIF/GPS extraction from images and documents."""
-
 from __future__ import annotations
 
 import asyncio
@@ -27,7 +25,6 @@ def _extract_image_meta(path: Path) -> dict:
 
         exif_dict = piexif.load(str(path))
     except Exception:
-        # piexif only parses JPEG/TIFF - fall back to Pillow for PNG/HEIC/WebP
         return _extract_image_meta_pillow(path)
     gps = exif_dict.get("GPS", {})
     lat = _gps_to_decimal(gps.get(piexif.GPSIFD.GPSLatitude))
@@ -46,8 +43,6 @@ def _extract_image_meta(path: Path) -> dict:
         out["date_taken"] = exif[piexif.ExifIFD.DateTimeOriginal].decode(errors="ignore")
     if exif.get(piexif.ExifIFD.LensMake):
         out["lens"] = exif[piexif.ExifIFD.LensMake].decode(errors="ignore")
-    # Note: ExifIFD has no 'Model' tag — camera model lives in 0th IFD
-    # so this branch is intentionally omitted (previously caused AttributeError)
     ifd0 = exif_dict.get("0th", {})
     if ifd0.get(piexif.ImageIFD.Make):
         out["camera_make"] = ifd0[piexif.ImageIFD.Make].decode(errors="ignore")

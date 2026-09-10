@@ -1,9 +1,3 @@
-"""High-value curated username checkers (GitHub, Reddit, X, Mastodon, etc.).
-
-These complement the WMN dataset with metadata extraction (name, bio,
-followers, avatar) - data the dataset does not provide.
-"""
-
 from __future__ import annotations
 
 import time

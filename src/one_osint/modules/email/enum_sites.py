@@ -1,10 +1,3 @@
-"""Curated email-registration check sites.
-
-Endpoints and detection markers are consolidated from public knowledge in
-the email-data.json (blackbird) and mailsleuth/holehe/mosint sources.
-Every entry follows the dual-marker contract of :class:`EnumSite`.
-"""
-
 from __future__ import annotations
 
 from .enum_engine import _RE_EMAIL, _RE_PHONE, EnumSite, PreCheck, Rule
@@ -64,9 +57,7 @@ def _protonmail_recover(status: int, content: str, payload) -> dict | None:
     return out or None
 
 
-# fmt: off
 EMAIL_SITES: list[EnumSite] = [
-    # ---- social ----
     EnumSite("Instagram", "social", "register",
         url="https://www.instagram.com/accounts/web_create_ajax/attempt/",
         http_method="POST",
@@ -141,7 +132,6 @@ EMAIL_SITES: list[EnumSite] = [
         not_found=[Rule("json", 404, "status")],
         impersonate="chrome124"),
 
-    # ---- coding / dev ----
     EnumSite("Replit", "dev", "probe",
         url="https://replit.com/data/users/email/{email}",
         found=[Rule("status", 200)],
@@ -153,7 +143,6 @@ EMAIL_SITES: list[EnumSite] = [
         found=[Rule("json", "taken", "exists")],
         not_found=[Rule("json", "available", "exists")]),
 
-    # ---- webmail ----
     EnumSite("Google", "webmail", "probe",
         url="https://mail.google.com/mail/gxlu?email={email}",
         found=[Rule("status", 200)],
@@ -181,7 +170,6 @@ EMAIL_SITES: list[EnumSite] = [
         not_found=[Rule("status", 404)],
         recover=_protonmail_recover),
 
-    # ---- CMS / productivity ----
     EnumSite("WordPress.com", "cms", "probe",
         url="https://public-api.wordpress.com/rest/v1.1/users/{email}/auth-options",
         found=[Rule("json", True, "email_verified")],
@@ -246,7 +234,6 @@ EMAIL_SITES: list[EnumSite] = [
         found=[Rule("json", "used", "status")],
         not_found=[Rule("json", "not_used", "status")]),
 
-    # ---- shopping ----
     EnumSite("Amazon", "shopping", "login",
         url="https://www.amazon.com/ap/signin",
         http_method="POST",
@@ -282,7 +269,6 @@ EMAIL_SITES: list[EnumSite] = [
         found=[Rule("json", True, "exists")],
         not_found=[Rule("json", False, "exists")]),
 
-    # ---- music / gaming / hobby ----
     EnumSite("Spotify", "music", "probe",
         url="https://spclient.wg.spotify.com/signup/public/v1/account?validate=1&email={email}",
         found=[Rule("json", 20, "status")],
@@ -296,7 +282,6 @@ EMAIL_SITES: list[EnumSite] = [
         found=[Rule("status", 226), Rule("string", "Email In Use")],
         not_found=[Rule("string", "Email Available")]),
 
-    # ---- misc / software ----
     EnumSite("Adobe", "misc", "recovery",
         url="https://auth.services.adobe.com/signin/v2/users/accounts",
         http_method="POST",
@@ -323,7 +308,6 @@ EMAIL_SITES: list[EnumSite] = [
         found=[Rule("json", "used", "status")],
         not_found=[Rule("json", "free", "status")]),
 ]
-# fmt: on
 
 
 def build_email_sites(include_nsfw: bool = True) -> list[EnumSite]:
