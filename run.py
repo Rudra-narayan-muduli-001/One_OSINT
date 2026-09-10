@@ -1,8 +1,3 @@
-"""Instant launcher for one-osint: starts the API + web UI and opens the browser.
-
-Usage:  python run.py [--port 8000] [--host 127.0.0.1] [--no-browser]
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -61,14 +56,12 @@ def main() -> None:
 
     url = f"http://{args.host}:{args.port}"
 
-    # Already running? Just open the browser.
     if _already_running(args.host, args.port):
         print(f"one-osint already running at {url}")
         if not args.no_browser:
             webbrowser.open(url)
         return
 
-    # Re-exec under the project venv so bare `python run.py` works everywhere.
     if not sys.prefix.startswith(str(ROOT)):
         venv_py = _venv_python()
         if venv_py and os.path.abspath(sys.executable) != os.path.abspath(venv_py):
@@ -77,7 +70,7 @@ def main() -> None:
             )
 
     try:
-        import uvicorn  # noqa: F401
+        import uvicorn
         from one_osint.api.server import app
     except ImportError as exc:
         print(f"[red]Missing dependency: {exc}")
