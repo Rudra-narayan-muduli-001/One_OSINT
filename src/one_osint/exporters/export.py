@@ -1,5 +1,3 @@
-"""Report exporters: JSON, CSV, Markdown, HTML, PDF."""
-
 from __future__ import annotations
 
 import csv

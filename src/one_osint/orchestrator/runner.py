@@ -1,5 +1,3 @@
-"""Run an investigation as a one-shot async entry (used by CLI and API)."""
-
 from __future__ import annotations
 
 from typing import Any

@@ -1,5 +1,3 @@
-"""FastAPI application: REST API + WebSocket streaming for investigations."""
-
 from __future__ import annotations
 
 import asyncio
@@ -38,9 +36,7 @@ async def index() -> PlainTextResponse:
         raise HTTPException(404, "web UI not built")
     return PlainTextResponse(idx.read_text(encoding="utf-8"), media_type="text/html")
 
-#: investigation_id -> asyncio.Queue of events (for WebSocket fan-out)
 _active: dict[str, asyncio.Queue] = {}
-#: strong refs to background workers (prevents GC of pending tasks)
 _tasks: set[asyncio.Task] = set()
 
 

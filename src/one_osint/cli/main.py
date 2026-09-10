@@ -1,5 +1,3 @@
-"""one-osint CLI - typer-based, rich output."""
-
 from __future__ import annotations
 
 import asyncio
@@ -45,7 +43,7 @@ KEY_DESCRIPTIONS = {
 def investigate(
     target: str = typer.Argument(..., help="email, username, phone, domain, IP or file path"),
     modules: str = typer.Option(None, "--modules", "-m", help="comma-separated module names"),
-    output: Path = typer.Option(None, "--output", "-o", help="export file (.json/.csv/.md/.html/.pdf)"),  # noqa: B008
+    output: Path = typer.Option(None, "--output", "-o", help="export file (.json/.csv/.md/.html/.pdf)"),
     allow_loud: bool = typer.Option(False, "--allow-loud", help="allow modules that contact the target"),
     allow_opt_in: bool = typer.Option(False, "--opt-in", help="run opt-in modules"),
     tor: bool = typer.Option(False, "--tor", help="route through Tor SOCKS proxy on 127.0.0.1:9050"),
@@ -54,7 +52,6 @@ def investigate(
     timeout: float = typer.Option(15.0, "--timeout", min=1),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="only print summary"),
 ) -> None:
-    """Run a full OSINT investigation on a target."""
     input_type = detect_input_type(target)
     if input_type.value == "unknown":
         console.print(f"[red]Cannot detect input type for:[/red] {target}")
@@ -134,7 +131,6 @@ def _print_summary(report: dict) -> None:
 
 @app.command("modules")
 def list_modules() -> None:
-    """List all available OSINT modules."""
     table = Table(title="Modules")
     table.add_column("Name", style="cyan")
     table.add_column("Input types")
@@ -156,7 +152,6 @@ def keys(
     unset: str = typer.Option(None, "--unset", help="remove a key by name"),
     list: bool = typer.Option(False, "--list", help="show configured keys"),
 ) -> None:
-    """Manage API keys (stored in ~/.config/one-osint/keys.yaml)."""
     vault = KeyVault()
     if set:
         name, _, value = set.partition("=")
@@ -183,7 +178,6 @@ def serve(
     host: str = typer.Option("127.0.0.1", "--host", "-H"),
     port: int = typer.Option(8000, "--port", "-p"),
 ) -> None:
-    """Start the REST API + WebSocket server (and web UI when built)."""
     import uvicorn
 
     console.print(f"[cyan]one-osint API on http://{host}:{port} (docs at /docs)[/cyan]")
@@ -192,7 +186,6 @@ def serve(
 
 @app.command("version")
 def version() -> None:
-    """Show version."""
     console.print(f"one-osint {__version__}")
 
 

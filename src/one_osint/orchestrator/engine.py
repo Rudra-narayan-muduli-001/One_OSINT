@@ -1,10 +1,3 @@
-"""Investigation orchestrator.
-
-Runs a phased pipeline over the auto-discovered modules with asyncio
-concurrency, per-module timeouts, optional streaming of events, and
-persistence to SQLite.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -35,7 +28,6 @@ class Investigation:
     event_sink: EventSink | None = None
     storage: Storage | None = None
 
-    #: per-phase output filled during run
     results: list[ModuleResult] = field(default_factory=list)
     pivots: dict[str, list[str]] = field(default_factory=dict)
 
@@ -50,7 +42,6 @@ class Investigation:
         try:
             return await self._run_pipeline()
         finally:
-            # release pooled connections so repeated runs don't leak sockets
             client = get_http_client()
             with contextlib.suppress(Exception):
                 await client.aclose()
@@ -95,17 +86,14 @@ class Investigation:
                     )
                 return res
 
-        # Phase 1: primary modules (all matching input type)
         primary = [m for m in modules if self.input_type.value in m.input_types]
         secondary = [m for m in modules if m not in primary]
 
         results = await asyncio.gather(*[run_one(m) for m in primary])
         self.results = list(results)
 
-        # Phase 2: pivots - derive new targets from findings
         await self._run_pivots(modules, run_one)
 
-        # Phase 3: secondary modules (e.g. domain checks on the email's domain)
         if secondary:
             extra = await asyncio.gather(*[run_one(m) for m in secondary])
             self.results.extend(extra)
@@ -133,7 +121,6 @@ class Investigation:
         )
 
     async def _run_pivots(self, modules: list[BaseModule], run_one) -> None:
-        """Collect derived pivot targets (emails/usernames/domains) for the report."""
         self.pivots["emails"] = _collect_field(self.results, "emails")
         self.pivots["usernames"] = _collect_field(self.results, "usernames")
         self.pivots["domains"] = _collect_field(self.results, "domains")
