@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -17,15 +17,16 @@ class GithubSearch(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         headers = {}
         if self.keys and self.keys.has("github"):
             headers["Authorization"] = f"token {self.keys.get('github')}"
         try:
-            resp = await http.get(
+            resp = await get(
                 "https://api.github.com/search/users",
                 params={"q": target, "per_page": 5},
                 headers=headers,
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"github returned {resp.status_code}"
@@ -63,9 +64,9 @@ class ProtonmailLookup(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://api.protonmail.ch/pks/lookup?op=get&search={quote(target, safe='')}")
+            resp = await get(f"https://api.protonmail.ch/pks/lookup?op=get&search={quote(target, safe='')}", settings=settings)
             if resp.status_code == 200 and "pub" in resp.text:
                 result.summary = {"proton_account": True, "pgp_key": True}
                 result.findings.append(
@@ -97,10 +98,11 @@ class VinDecode(BaseModule):
             result.findings.append(Finding(site="vin", status=Status.ERROR, category="vehicle"))
             result.duration = time.perf_counter() - started
             return result
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVINValuesExtended/{target}?format=json",
+                settings=settings,
                 timeout=20,
             )
             if resp.status_code != 200:
@@ -169,11 +171,12 @@ class LicensePlateLookup(BaseModule):
             result.duration = time.perf_counter() - started
             return result
         plate, state = target.rsplit("-", 1)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://findbyplate.com/US/{state.upper()}/{plate}/",
                 impersonate="chrome124",
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.findings.append(Finding(site="findbyplate", status=Status.ERROR))
@@ -214,9 +217,8 @@ class DarkWebSearch(BaseModule):
             result.findings.append(Finding(site="ahmia", status=Status.SKIPPED, category="darkweb"))
             result.duration = time.perf_counter() - started
             return result
-        http = get_http_client(settings)
         try:
-            resp = await http.get(f"https://ahmia.fi/search/?q={quote(target, safe='')}", timeout=30)
+            resp = await get(f"https://ahmia.fi/search/?q={quote(target, safe='')}", settings=settings, timeout=30)
             if resp.status_code == 200:
                 import re
 
