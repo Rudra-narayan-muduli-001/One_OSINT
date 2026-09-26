@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
-import yaml
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .paths import CONFIG_DIR, KEYS_FILE, PROJECT_ROOT
 
@@ -53,17 +55,38 @@ SUPPORTED_KEYS: dict[str, tuple[str, str]] = {
 }
 
 
+class _KeySettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="allow")
+
+    hibp: str | None = None
+    emailrep: str | None = None
+    hunter: str | None = None
+    intelx: str | None = None
+    breachdirectory: str | None = None
+    shodan: str | None = None
+    virustotal: str | None = None
+    numverify: str | None = None
+    google_cse: str | None = None
+    google_cse_cx: str | None = None
+    google_geolocation: str | None = None
+    otx: str | None = None
+    certspotter: str | None = None
+    hudsonrock: str | None = None
+    github: str | None = None
+    rapidapi: str | None = None
+
+
 @dataclass
 class KeyVault:
     overrides: dict[str, str] = field(default_factory=dict)
+    _settings: _KeySettings = field(default_factory=_KeySettings, init=False)
     _file_data: dict[str, str] = field(default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         if KEYS_FILE.exists():
             try:
-                raw = yaml.safe_load(KEYS_FILE.read_text(encoding="utf-8")) or {}
-                self._file_data = {str(k): str(v) for k, v in raw.items() if v}
-            except yaml.YAMLError:
+                self._file_data = json.loads(KEYS_FILE.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
                 self._file_data = {}
 
     def get(self, name: str) -> str | None:
@@ -74,6 +97,9 @@ class KeyVault:
             env_val = os.environ.get(spec[0])
             if env_val:
                 return env_val
+        val = getattr(self._settings, name, None)
+        if val:
+            return val
         return self._file_data.get(name)
 
     def has(self, name: str) -> bool:
@@ -83,18 +109,24 @@ class KeyVault:
     def set(name: str, value: str) -> None:
         data: dict[str, str] = {}
         if KEYS_FILE.exists():
-            data = yaml.safe_load(KEYS_FILE.read_text(encoding="utf-8")) or {}
+            try:
+                data = json.loads(KEYS_FILE.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                pass
         data[name] = value
-        KEYS_FILE.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+        KEYS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     @staticmethod
     def unset(name: str) -> bool:
         if not KEYS_FILE.exists():
             return False
-        data = yaml.safe_load(KEYS_FILE.read_text(encoding="utf-8")) or {}
+        try:
+            data = json.loads(KEYS_FILE.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return False
         if name in data:
             del data[name]
-            KEYS_FILE.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+            KEYS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
             return True
         return False
 
