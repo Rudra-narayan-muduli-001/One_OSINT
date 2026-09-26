@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from .. import __version__
-from ..core.config import KeyVault, Settings
+from ..core.config import KeyVault, Settings, SUPPORTED_KEYS
 from ..core.detect import detect_input_type
 from ..core.storage import Storage
 from ..exporters.export import write_export
@@ -18,25 +18,6 @@ from ..orchestrator.runner import run_investigation
 
 app = typer.Typer(help="one-osint - unified OSINT platform", no_args_is_help=True)
 console = Console()
-
-KEY_DESCRIPTIONS = {
-    "hibp": "HaveIBeenPwned v3",
-    "emailrep": "EmailRep.io",
-    "hunter": "Hunter.io",
-    "intelx": "Intelligence X",
-    "breachdirectory": "BreachDirectory (RapidAPI)",
-    "shodan": "Shodan",
-    "virustotal": "VirusTotal",
-    "numverify": "Numverify / apilayer",
-    "google_cse": "Google Programmable Search",
-    "google_cse_cx": "Google CSE engine ID",
-    "google_geolocation": "Google Geolocation API",
-    "otx": "AlienVault OTX",
-    "certspotter": "CertSpotter",
-    "hudsonrock": "Hudson Rock",
-    "github": "GitHub token",
-    "rapidapi": "RapidAPI key",
-}
 
 
 @app.command()
