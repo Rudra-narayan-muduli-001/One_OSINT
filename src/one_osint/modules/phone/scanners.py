@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 from .parse import build_dorks, parse_number
@@ -43,13 +43,14 @@ class PhoneNumverify(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("numverify") if self.keys else None
         try:
-            resp = await http.get(
+            resp = await get(
                 "https://api.apilayer.com/number_verification/validate",
                 params={"number": target},
                 headers={"apikey": key},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"numverify returned {resp.status_code}"
@@ -89,7 +90,7 @@ class PhoneOvh(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         country = None
         parsed = parse_number(target)
         if parsed:
@@ -102,9 +103,10 @@ class PhoneOvh(BaseModule):
             result.duration = time.perf_counter() - started
             return result
         try:
-            resp = await http.get(
+            resp = await get(
                 "https://api.ovh.com/1.0/telephony/number/detailedZones",
                 params={"country": country, "number": target.replace("+", "")},
+                settings=settings,
             )
             if resp.status_code == 200:
                 zones = resp.json()
@@ -171,7 +173,7 @@ class PhoneGoogleCse(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("google_cse") if self.keys else None
         cx = self.keys.get("google_cse_cx") if self.keys else None
         if not cx:
@@ -180,9 +182,10 @@ class PhoneGoogleCse(BaseModule):
             result.duration = time.perf_counter() - started
             return result
         try:
-            resp = await http.get(
+            resp = await get(
                 "https://www.googleapis.com/customsearch/v1",
                 params={"key": key, "cx": cx, "q": f'"{target}"', "num": 10},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"google cse returned {resp.status_code}"
