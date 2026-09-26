@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get, post
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -18,12 +18,13 @@ class BreachHibp(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("hibp") if self.keys else None
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://haveibeenpwned.com/api/v3/breachedaccount/{quote(target, safe='')}",
                 headers={"hibp-api-key": key, "user-agent": "one-osint"},
+                settings=settings,
             )
             if resp.status_code == 404:
                 result.summary = {"breaches": []}
@@ -66,12 +67,13 @@ class BreachDirectory(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("breachdirectory") if self.keys else None
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://breachdirectory.p.rapidapi.com/?func=auto&term={quote(target, safe='')}",
                 headers={"X-RapidAPI-Key": key, "X-RapidAPI-Host": "breachdirectory.p.rapidapi.com"},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"breachdirectory returned {resp.status_code}"
@@ -112,13 +114,14 @@ class BreachIntelX(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("intelx") if self.keys else None
         try:
-            resp = await http.post(
+            resp = await post(
                 "https://2.intelx.io/intelligent/search",
                 json={"term": target, "maxresults": 20, "media": 0, "sort": 2, "terminate": []},
                 headers={"x-key": key},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"intelx returned {resp.status_code}"
@@ -159,9 +162,9 @@ class PastebinSearch(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://psbdmp.ws/api/v3/search/{quote(target, safe='')}")
+            resp = await get(f"https://psbdmp.ws/api/v3/search/{quote(target, safe='')}", settings=settings)
             if resp.status_code != 200:
                 result.error = f"psbdmp returned {resp.status_code}"
                 result.findings.append(Finding(site="psbdmp", status=Status.ERROR))
@@ -198,13 +201,14 @@ class HudsonRockStealer(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("hudsonrock") if self.keys else None
         headers = {"api-key": key} if key else {}
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://cavalier.hudsonrock.com/api/json/v2/osint-tools/search-by-email?email={quote(target, safe='')}",
                 headers=headers,
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"hudsonrock returned {resp.status_code}"

@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 from .enum_engine import EnumEngine
@@ -19,7 +18,7 @@ class EmailEnumeration(BaseModule):
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
         settings = self.settings or Settings()
-        engine = EnumEngine(get_http_client(settings), max_concurrent=settings.concurrency)
+        engine = EnumEngine(settings, max_concurrent=settings.concurrency)
         sites = build_email_sites()
         hits = await engine.check_email(
             target, sites, allow_loud=settings.allow_loud

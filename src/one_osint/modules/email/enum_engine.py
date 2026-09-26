@@ -7,7 +7,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from ...core.http_client import HttpClient
+from ...core.config import Settings
+from ...core.http_client import get, post, request
 
 
 @dataclass(slots=True)
@@ -105,8 +106,8 @@ class EmailHit:
 
 
 class EnumEngine:
-    def __init__(self, http: HttpClient, max_concurrent: int = 25) -> None:
-        self.http = http
+    def __init__(self, settings: Settings, max_concurrent: int = 25) -> None:
+        self.settings = settings
         self.sem = asyncio.Semaphore(max_concurrent)
 
     async def check_email(
@@ -118,9 +119,7 @@ class EnumEngine:
     ) -> list[EmailHit]:
         hits: list[EmailHit] = []
         await asyncio.gather(
-            *[
-                self._check_one(email, site, hits, allow_loud) for site in sites
-            ]
+            *[self._check_one(email, site, hits, allow_loud) for site in sites]
         )
         hits.sort(key=lambda h: h.site.lower())
         return hits
@@ -145,7 +144,7 @@ class EnumEngine:
         try:
             async with self.sem:
                 if site.pre_check:
-                    resp0 = await self.http.get(site.pre_check.url)
+                    resp0 = await get(site.pre_check.url, settings=self.settings)
                     for name in site.pre_check.cookie_names:
                         if name in resp0.headers.get("Set-Cookie", ""):
                             raw = resp0.headers["Set-Cookie"]
@@ -165,7 +164,7 @@ class EnumEngine:
                     for k, v in headers.items()
                 }
 
-                kwargs: dict[str, Any] = {"headers": headers or None}
+                kwargs: dict[str, Any] = {"headers": headers or None, "settings": self.settings}
                 if site.params:
                     kwargs["params"] = {
                         k: str(v).replace("{input}", value).replace("{email}", email)
@@ -193,7 +192,8 @@ class EnumEngine:
                 if site.impersonate:
                     kwargs["impersonate"] = site.impersonate
 
-                resp = await getattr(self.http, site.http_method.lower())(url, **kwargs)
+                method_func = get if site.http_method == "GET" else post
+                resp = await method_func(url, **kwargs)
         except Exception as exc:
             out.append(
                 EmailHit(
