@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -16,9 +16,9 @@ class IpWhois(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://ipwhois.app/json/{target}", timeout=20)
+            resp = await get(f"https://ipwhois.app/json/{target}", settings=settings, timeout=20)
             if resp.status_code != 200:
                 result.error = f"ipwhois.app returned {resp.status_code}"
                 result.findings.append(Finding(site="ipwhois", status=Status.ERROR))
@@ -61,12 +61,13 @@ class IpShodan(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("shodan") if self.keys else None
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://api.shodan.io/shodan/host/{target}",
                 params={"key": key},
+                settings=settings,
                 timeout=20,
             )
             if resp.status_code != 200:
