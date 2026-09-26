@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ...core.http_client import HttpClient
+from ...core.config import Settings
+from ...core.http_client import get, post
 from ...core.paths import DATA_DIR
 
 WMN_FILE = DATA_DIR / "wmn-data.json"
@@ -118,16 +119,14 @@ def check_content_negative(username: str, content: str, site: WmnSite) -> bool:
 
 
 class WmnChecker:
-    def __init__(self, http: HttpClient, max_concurrent: int = 30) -> None:
-        self.http = http
+    def __init__(self, settings: Settings, max_concurrent: int = 30) -> None:
+        self.settings = settings
         self.sem = asyncio.Semaphore(max_concurrent)
         self.sites = load_wmn_sites()
 
     async def check_username(
         self, username: str, *, no_nsfw: bool = False
     ) -> list[UsernameHit]:
-        import asyncio
-
         hits: list[UsernameHit] = []
         await asyncio.gather(
             *[self._check_one(username, site, hits, no_nsfw) for site in self.sites]
@@ -158,24 +157,27 @@ class WmnChecker:
                                 for k, v in _POST_JSON_SITES[site.name].items()
                             }
                         )
-                        resp = await self.http.post(
+                        resp = await post(
                             url,
                             data=body,
                             headers={**site.headers, "Content-Type": "application/json"},
                             impersonate=self._pick_impersonate(site),
+                            settings=self.settings,
                         )
                     else:
-                        resp = await self.http.post(
+                        resp = await post(
                             url,
                             data=site.post_body.replace("{account}", target),
                             headers=site.headers,
                             impersonate=self._pick_impersonate(site),
+                            settings=self.settings,
                         )
                 else:
-                    resp = await self.http.get(
+                    resp = await get(
                         url,
                         headers=site.headers,
                         impersonate=self._pick_impersonate(site),
+                        settings=self.settings,
                     )
         except Exception:
             return

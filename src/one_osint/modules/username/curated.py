@@ -3,13 +3,13 @@ from __future__ import annotations
 import time
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
 
-async def _github_check(http, username: str) -> Finding:
-    resp = await http.get(f"https://api.github.com/users/{username}", impersonate=None)
+async def _github_check(settings: Settings, username: str) -> Finding:
+    resp = await get(f"https://api.github.com/users/{username}", settings=settings, impersonate=None)
     if resp.status_code == 404:
         return Finding(site="github", status=Status.NOT_FOUND, category="dev")
     if resp.status_code != 200:
@@ -44,9 +44,9 @@ class UsernameGithub(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            finding = await _github_check(http, target)
+            finding = await _github_check(settings, target)
         except Exception as exc:
             result.error = str(exc)
             result.findings.append(Finding(site="github", status=Status.ERROR))
@@ -64,9 +64,9 @@ class UsernameReddit(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://www.reddit.com/user/{target}/about.json")
+            resp = await get(f"https://www.reddit.com/user/{target}/about.json", settings=settings)
             if resp.status_code == 404:
                 result.findings.append(Finding(site="reddit", status=Status.NOT_FOUND))
             elif resp.status_code == 200:
@@ -104,11 +104,12 @@ class UsernameMastodon(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(
+            resp = await get(
                 "https://mastodon.social/api/v2/search",
                 params={"q": target, "resolve": "true", "limit": 5},
+                settings=settings,
             )
             if resp.status_code == 200:
                 accounts = resp.json().get("accounts", [])

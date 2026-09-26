@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 from .wmn_engine import WmnChecker
@@ -18,9 +17,7 @@ class UsernameWmn(BaseModule):
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
         settings = self.settings or Settings()
-        checker = WmnChecker(
-            get_http_client(settings), max_concurrent=settings.concurrency
-        )
+        checker = WmnChecker(settings, max_concurrent=settings.concurrency)
         hits = await checker.check_username(target)
         for hit in hits:
             result.findings.append(
