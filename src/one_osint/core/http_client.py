@@ -41,141 +41,117 @@ class Response:
         return any(m in self.text for m in markers)
 
 
-class HttpClient:
-    def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or Settings()
-        self._clients: dict[tuple[bool, str | None], httpx.AsyncClient] = {}
-        self._session = asyncio.Lock()
+def _pick_proxy(settings: Settings) -> str | None:
+    if settings.tor:
+        return "socks5h://127.0.0.1:9050"
+    if settings.proxies:
+        if settings.proxy_rotate:
+            return random.choice(settings.proxies)
+        return settings.proxies[0]
+    return None
 
-    async def _get_client(self, http2: bool = True, proxy: str | None = None) -> httpx.AsyncClient:
-        key = (http2, proxy)
-        async with self._session:
-            if key not in self._clients:
-                kwargs: dict[str, Any] = {
-                    "http2": http2,
-                    "verify": self.settings.verify_tls,
-                    "timeout": httpx.Timeout(self.settings.timeout),
-                    "follow_redirects": True,
-                    "headers": {"Accept-Language": "en-US,en;q=0.9"},
-                }
-                if proxy:
-                    kwargs["proxy"] = proxy
-                self._clients[key] = httpx.AsyncClient(**kwargs)
-            return self._clients[key]
 
-    def _pick_proxy(self) -> str | None:
-        if self.settings.tor:
-            return "socks5h://127.0.0.1:9050"
-        if self.settings.proxies:
-            if self.settings.proxy_rotate:
-                return random.choice(self.settings.proxies)
-            return self.settings.proxies[0]
-        return None
+async def _curl_request(
+    method: str,
+    url: str,
+    *,
+    headers: dict[str, str],
+    params: dict[str, Any] | None = None,
+    data: dict[str, Any] | str | None = None,
+    json: dict[str, Any] | None = None,
+    impersonate: str,
+    timeout: float | None,
+    proxy: str | None,
+    settings: Settings,
+) -> Response:
+    kwargs: dict[str, Any] = {
+        "headers": headers,
+        "params": params,
+        "timeout": timeout or settings.timeout,
+        "impersonate": impersonate,
+        "allow_redirects": True,
+    }
+    if proxy:
+        kwargs["proxies"] = {"http": proxy, "https": proxy}
+    if data is not None:
+        kwargs["data"] = data
+    if json is not None:
+        kwargs["json"] = json
+    resp = getattr(curl_requests, method.lower())(url, **kwargs)
+    return Response(
+        status_code=resp.status_code,
+        text=resp.text,
+        headers={k: str(v) for k, v in resp.headers.items()},
+        url=str(resp.url),
+    )
 
-    async def request(
-        self,
-        method: str,
-        url: str,
-        *,
-        headers: dict[str, str] | None = None,
-        params: dict[str, Any] | None = None,
-        data: dict[str, Any] | str | None = None,
-        json: dict[str, Any] | None = None,
-        impersonate: str | None = None,
-        timeout: float | None = None,
-        http2: bool = True,
-    ) -> Response:
-        hdrs = dict(headers or {})
-        if self.settings.user_agent_rotate and "User-Agent" not in hdrs:
-            hdrs["User-Agent"] = random_user_agent()
-        proxy = self._pick_proxy()
 
-        if impersonate and _HAS_CURL:
-            return await asyncio.to_thread(
-                self._curl_request,
-                method,
-                url,
-                headers=hdrs,
-                params=params,
-                data=data,
-                json=json,
-                impersonate=impersonate,
-                timeout=timeout,
-                proxy=proxy,
-            )
+async def request(
+    method: str,
+    url: str,
+    *,
+    settings: Settings | None = None,
+    headers: dict[str, str] | None = None,
+    params: dict[str, Any] | None = None,
+    data: dict[str, Any] | str | None = None,
+    json: dict[str, Any] | None = None,
+    impersonate: str | None = None,
+    timeout: float | None = None,
+    http2: bool = True,
+) -> Response:
+    s = settings or Settings()
+    hdrs = dict(headers or {})
+    if s.user_agent_rotate and "User-Agent" not in hdrs:
+        hdrs["User-Agent"] = random_user_agent()
+    proxy = _pick_proxy(s)
 
-        client = await self._get_client(http2=http2, proxy=proxy)
-        try:
-            kwargs: dict[str, Any] = {"params": params, "headers": hdrs}
-            if data is not None:
-                kwargs["data"] = data
-            if json is not None:
-                kwargs["json"] = json
-            if timeout is not None:
-                kwargs["timeout"] = timeout
-            resp = await client.request(method, url, **kwargs)
-            resp.encoding = resp.encoding or "utf-8"
-            return Response(
-                status_code=resp.status_code,
-                text=resp.text,
-                headers=dict(resp.headers),
-                url=str(resp.url),
-            )
-        except httpx.HTTPError as exc:
-            raise RuntimeError(f"HTTP {method} {url}: {exc}") from exc
+    if impersonate and _HAS_CURL:
+        return await asyncio.to_thread(
+            _curl_request,
+            method,
+            url,
+            headers=hdrs,
+            params=params,
+            data=data,
+            json=json,
+            impersonate=impersonate,
+            timeout=timeout,
+            proxy=proxy,
+            settings=s,
+        )
 
-    def _curl_request(
-        self,
-        method: str,
-        url: str,
-        *,
-        headers: dict[str, str],
-        params: dict[str, Any] | None = None,
-        data: dict[str, Any] | str | None = None,
-        json: dict[str, Any] | None = None,
-        impersonate: str,
-        timeout: float | None,
-        proxy: str | None,
-    ) -> Response:
-        kwargs: dict[str, Any] = {
-            "headers": headers,
-            "params": params,
-            "timeout": timeout or self.settings.timeout,
-            "impersonate": impersonate,
-            "allow_redirects": True,
-        }
-        if proxy:
-            kwargs["proxies"] = {"http": proxy, "https": proxy}
+    client = httpx.AsyncClient(
+        http2=http2,
+        verify=s.verify_tls,
+        timeout=httpx.Timeout(timeout or s.timeout),
+        follow_redirects=True,
+        headers={"Accept-Language": "en-US,en;q=0.9"},
+        proxy=proxy,
+    )
+    try:
+        kwargs: dict[str, Any] = {"params": params, "headers": hdrs}
         if data is not None:
             kwargs["data"] = data
         if json is not None:
             kwargs["json"] = json
-        resp = getattr(curl_requests, method.lower())(url, **kwargs)
+        resp = await client.request(method, url, **kwargs)
+        resp.encoding = resp.encoding or "utf-8"
         return Response(
             status_code=resp.status_code,
             text=resp.text,
-            headers={k: str(v) for k, v in resp.headers.items()},
+            headers=dict(resp.headers),
             url=str(resp.url),
         )
-
-    async def get(self, url: str, **kwargs: Any) -> Response:
-        return await self.request("GET", url, **kwargs)
-
-    async def post(self, url: str, **kwargs: Any) -> Response:
-        return await self.request("POST", url, **kwargs)
-
-    async def aclose(self) -> None:
-        for client in self._clients.values():
-            with contextlib.suppress(Exception):
-                await client.aclose()
-        self._clients.clear()
+    except httpx.HTTPError as exc:
+        raise RuntimeError(f"HTTP {method} {url}: {exc}") from exc
+    finally:
+        with contextlib.suppress(Exception):
+            await client.aclose()
 
 
-_shared: HttpClient | None = None
+async def get(url: str, **kwargs: Any) -> Response:
+    return await request("GET", url, **kwargs)
 
 
-def get_http_client(settings: Settings | None = None) -> HttpClient:
-    global _shared
-    if _shared is None:
-        _shared = HttpClient(settings)
-    return _shared
+async def post(url: str, **kwargs: Any) -> Response:
+    return await request("POST", url, **kwargs)
