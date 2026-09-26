@@ -10,7 +10,7 @@ import dns.asyncresolver
 import dns.rdatatype
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.paths import CACHE_DIR, DATA_DIR
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
@@ -30,11 +30,11 @@ class CertTransparency(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         hosts: set[str] = set()
         try:
-            resp = await http.get(
-                f"https://crt.sh/?q=%25.{target}&output=json", timeout=30
+            resp = await get(
+                f"https://crt.sh/?q=%25.{target}&output=json", settings=settings, timeout=30
             )
             if resp.status_code == 200:
                 try:
@@ -50,9 +50,10 @@ class CertTransparency(BaseModule):
             result.error = str(exc)
         if self.keys and self.keys.has("certspotter"):
             try:
-                resp = await http.get(
+                resp = await get(
                     f"https://api.certspotter.com/v1/issuances?domain={target}&include_subdomains=true&expand=dns_names",
                     headers={"Authorization": f"Bearer {self.keys.get('certspotter')}"},
+                    settings=settings,
                 )
                 if resp.status_code == 200:
                     for row in resp.json():
@@ -123,12 +124,13 @@ class SubdomainTakeover(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         fingerprints = _load_fingerprints()
         if not fingerprints:
             try:
-                resp = await http.get(
+                resp = await get(
                     "https://raw.githubusercontent.com/EdOverflow/can-i-take-over-xyz/master/fingerprints.json",
+                    settings=settings,
                     timeout=15,
                 )
                 if resp.status_code == 200:
@@ -201,9 +203,9 @@ class AsnLookup(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://api.hackertarget.com/aslookup/?q={target}", timeout=20)
+            resp = await get(f"https://api.hackertarget.com/aslookup/?q={target}", settings=settings, timeout=20)
             if resp.status_code == 200:
                 lines = [line for line in resp.text.splitlines() if line.strip()]
                 if lines and "error" not in lines[0].lower():
@@ -237,12 +239,12 @@ class SubdomainPassive(BaseModule):
         target = target.strip().lower()
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         hosts: set[str] = set()
 
         async def from_rapiddns() -> None:
             try:
-                resp = await http.get(f"https://rapiddns.io/subdomain/{target}?full=1", timeout=20)
+                resp = await get(f"https://rapiddns.io/subdomain/{target}?full=1", settings=settings, timeout=20)
                 if resp.status_code == 200:
                     for m in re.finditer(r"([a-z0-9](?:[a-z0-9\-]*[a-z0-9])?\.)+" + re.escape(target), resp.text.lower()):
                         hosts.add(m.group(0))
@@ -251,7 +253,7 @@ class SubdomainPassive(BaseModule):
 
         async def from_hackertarget() -> None:
             try:
-                resp = await http.get(f"https://api.hackertarget.com/hostsearch/?q={target}", timeout=20)
+                resp = await get(f"https://api.hackertarget.com/hostsearch/?q={target}", settings=settings, timeout=20)
                 if resp.status_code == 200:
                     for line in resp.text.splitlines():
                         host = line.split(",")[0].strip().lower()
@@ -265,9 +267,9 @@ class SubdomainPassive(BaseModule):
             if self.keys and self.keys.has("otx"):
                 headers = {"X-OTX-API-KEY": self.keys.get("otx")}
             try:
-                resp = await http.get(
+                resp = await get(
                     f"https://otx.alienvault.com/api/v1/indicators/domain/{target}/passive_dns",
-                    headers=headers, timeout=20,
+                    headers=headers, settings=settings, timeout=20,
                 )
                 if resp.status_code == 200:
                     for rec in resp.json().get("passive_dns", []):
@@ -279,7 +281,7 @@ class SubdomainPassive(BaseModule):
 
         async def from_anubis() -> None:
             try:
-                resp = await http.get(f"https://jldc.me/anubis/subdomains/{target}", timeout=20)
+                resp = await get(f"https://jldc.me/anubis/subdomains/{target}", settings=settings, timeout=20)
                 if resp.status_code == 200:
                     for host in resp.json():
                         if isinstance(host, str) and host.lower().endswith("." + target):
