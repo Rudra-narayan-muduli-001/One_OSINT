@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get, post
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -17,9 +17,9 @@ class GoogleEmailProbe(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         try:
-            resp = await http.get(f"https://mail.google.com/mail/gxlu?email={quote(target, safe='')}")
+            resp = await get(f"https://mail.google.com/mail/gxlu?email={quote(target, safe='')}", settings=settings)
             cookie = resp.headers.get("Set-Cookie", "")
             if resp.status_code == 200 or ("SID" in cookie or "COMPASS" in cookie):
                 result.summary = {"registered": True}
@@ -49,13 +49,14 @@ class GoogleBssidGeo(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("google_geolocation") if self.keys else None
         try:
-            resp = await http.post(
+            resp = await post(
                 "https://www.googleapis.com/geolocation/v1/geolocate",
                 params={"key": key},
                 json={"wifiAccessPoints": [{"macAddress": target, "signalStrength": -50}]},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"google geolocation returned {resp.status_code}"
