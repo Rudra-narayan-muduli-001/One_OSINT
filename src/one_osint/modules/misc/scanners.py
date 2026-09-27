@@ -4,6 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
+from ...core.dorks import build_generic_dorks
 from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
@@ -133,16 +134,7 @@ class GoogleDorks(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        queries = [
-            f"intext:'{target}'",
-            f'"{target}" filetype:pdf',
-            f'"{target}" filetype:csv',
-            f'"{target}" site:pastebin.com',
-            f'"{target}" site:github.com',
-            f'"{target}" site:linkedin.com',
-            f'"{target}" site:facebook.com',
-            f'"{target}" -site:linkedin.com -site:facebook.com',
-        ]
+        queries = build_generic_dorks(target)
         result.summary = {"dorks": len(queries)}
         for q in queries:
             result.findings.append(
