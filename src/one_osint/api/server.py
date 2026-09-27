@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from ..core.config import KeyVault, Settings
 from ..core.detect import detect_input_type
 from ..core.storage import Storage
-from ..modules.base import discover_modules
+from ..modules import discover_modules
 from ..orchestrator.runner import run_investigation
 
 app = FastAPI(title="one-osint", version="0.1.0")
