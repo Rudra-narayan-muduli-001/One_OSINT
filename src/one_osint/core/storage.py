@@ -1,119 +1,114 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .paths import DB_FILE
+from .paths import CONFIG_DIR
 
 
 def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+RESULTS_FILE = CONFIG_DIR / "investigations.jsonl"
+
+
 class Storage:
     def __init__(self, path: Path | None = None) -> None:
-        self.path = path or DB_FILE
-        self._ensure_schema()
+        self.path = path or RESULTS_FILE
+        self.path.parent.mkdir(parents=True, exist_ok=True)
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
-        return conn
+    def _read_all(self) -> list[dict]:
+        if not self.path.exists():
+            return []
+        with self.path.open("r", encoding="utf-8") as f:
+            return [json.loads(line) for line in f if line.strip()]
 
-    def _ensure_schema(self) -> None:
-        with self._connect() as conn:
-            conn.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS investigations (
-                    id TEXT PRIMARY KEY,
-                    target TEXT NOT NULL,
-                    input_type TEXT NOT NULL,
-                    status TEXT NOT NULL DEFAULT 'running',
-                    created_at TEXT NOT NULL,
-                    finished_at TEXT,
-                    report_json TEXT
-                );
-                CREATE TABLE IF NOT EXISTS module_runs (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    investigation_id TEXT NOT NULL,
-                    module TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    duration REAL,
-                    result_json TEXT
-                );
-                CREATE INDEX IF NOT EXISTS idx_module_runs_inv
-                    ON module_runs(investigation_id);
-                """
-            )
+    def _write_all(self, data: list[dict]) -> None:
+        with self.path.open("w", encoding="utf-8") as f:
+            for item in data:
+                f.write(json.dumps(item) + "\n")
 
     def create_investigation(self, target: str, input_type: str) -> str:
         inv_id = uuid.uuid4().hex[:16]
-        with self._connect() as conn:
-            conn.execute(
-                "INSERT INTO investigations (id, target, input_type, status, created_at) "
-                "VALUES (?, ?, ?, 'running', ?)",
-                (inv_id, target, input_type, _now()),
-            )
+        inv = {
+            "id": inv_id,
+            "target": target,
+            "input_type": input_type,
+            "status": "running",
+            "created_at": _now(),
+            "finished_at": None,
+            "report": None,
+            "module_runs": [],
+        }
+        data = self._read_all()
+        data.append(inv)
+        self._write_all(data)
         return inv_id
 
     def update_investigation(self, inv_id: str, status: str, report: dict | None = None) -> None:
-        with self._connect() as conn:
-            if report is not None:
-                conn.execute(
-                    "UPDATE investigations SET status = ?, report_json = ?, finished_at = ? "
-                    "WHERE id = ?",
-                    (status, json.dumps(report), _now(), inv_id),
-                )
-            else:
-                conn.execute(
-                    "UPDATE investigations SET status = ?, finished_at = ? WHERE id = ?",
-                    (status, _now(), inv_id),
-                )
+        data = self._read_all()
+        for inv in data:
+            if inv["id"] == inv_id:
+                inv["status"] = status
+                inv["finished_at"] = _now()
+                if report is not None:
+                    inv["report"] = report
+                break
+        self._write_all(data)
 
     def save_module_run(
         self, inv_id: str, module: str, status: str, duration: float, result: dict
     ) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                "INSERT INTO module_runs (investigation_id, module, status, duration, result_json) "
-                "VALUES (?, ?, ?, ?, ?)",
-                (inv_id, module, status, duration, json.dumps(result)),
-            )
+        data = self._read_all()
+        for inv in data:
+            if inv["id"] == inv_id:
+                inv["module_runs"].append(
+                    {
+                        "module": module,
+                        "status": status,
+                        "duration": duration,
+                        "result": result,
+                    }
+                )
+                break
+        self._write_all(data)
 
     def get_investigation(self, inv_id: str) -> dict | None:
-        with self._connect() as conn:
-            row = conn.execute("SELECT * FROM investigations WHERE id = ?", (inv_id,)).fetchone()
-            return dict(row) if row else None
+        for inv in self._read_all():
+            if inv["id"] == inv_id:
+                return inv
+        return None
 
     def get_module_runs(self, inv_id: str) -> list[dict]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT module, status, duration, result_json FROM module_runs "
-                "WHERE investigation_id = ? ORDER BY id",
-                (inv_id,),
-            ).fetchall()
-            out = []
-            for r in rows:
-                d = dict(r)
-                d["result"] = json.loads(d.pop("result_json") or "{}")
-                out.append(d)
-            return out
+        for inv in self._read_all():
+            if inv["id"] == inv_id:
+                return inv.get("module_runs", [])
+        return []
 
     def list_investigations(self, limit: int = 50) -> list[dict]:
-        with self._connect() as conn:
-            rows = conn.execute(
-                "SELECT id, target, input_type, status, created_at, finished_at "
-                "FROM investigations ORDER BY created_at DESC LIMIT ?",
-                (limit,),
-            ).fetchall()
-            return [dict(r) for r in rows]
+        data = self._read_all()
+        data.sort(key=lambda x: x["created_at"], reverse=True)
+        out = []
+        for inv in data[:limit]:
+            out.append(
+                {
+                    "id": inv["id"],
+                    "target": inv["target"],
+                    "input_type": inv["input_type"],
+                    "status": inv["status"],
+                    "created_at": inv["created_at"],
+                    "finished_at": inv["finished_at"],
+                }
+            )
+        return out
 
     def delete_investigation(self, inv_id: str) -> bool:
-        with self._connect() as conn:
-            cur = conn.execute("DELETE FROM investigations WHERE id = ?", (inv_id,))
-            conn.execute("DELETE FROM module_runs WHERE investigation_id = ?", (inv_id,))
-            return cur.rowcount > 0
+        data = self._read_all()
+        new_data = [inv for inv in data if inv["id"] != inv_id]
+        if len(new_data) < len(data):
+            self._write_all(new_data)
+            return True
+        return False

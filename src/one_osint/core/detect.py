@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from enum import StrEnum
 
-_EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
-_PHONE_RE = re.compile(r"^\+?[0-9][0-9\s().\-]{5,}$")
+from .patterns import _EMAIL_RE, _PHONE_RE
+
 _DOMAIN_RE = re.compile(
     r"^(?!\-)(?:[A-Za-z0-9\-]{1,63}\.)+[A-Za-z]{2,}$"
 )
