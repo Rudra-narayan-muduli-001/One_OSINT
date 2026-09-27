@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import time
-from urllib.parse import quote
 
 from ...core.config import Settings
+from ...core.dorks import build_phone_dorks, dorks_to_findings
 from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
-from .parse import build_dorks, parse_number
+from .parse import parse_number
 
 
 class PhoneLocal(BaseModule):
@@ -145,21 +145,20 @@ class PhoneDorks(BaseModule):
             result.duration = time.perf_counter() - started
             return result
         e164 = parsed["e164"]
-        dorks = build_dorks(e164)
+        dorks = build_phone_dorks(e164)
         total = sum(len(v) for v in dorks.values())
         result.summary = {"dorks": total, "groups": {k: len(v) for k, v in dorks.items()}}
-        for group, queries in dorks.items():
-            for q in queries:
-                result.findings.append(
-                    Finding(
-                        site="google",
-                        status=Status.POSSIBLE,
-                        category=group,
-                        url=f"https://www.google.com/search?q={quote(q)}",
-                        reason="ready-to-run search link (not verified)",
-                        extra={"query": q},
-                    )
+        for f in dorks_to_findings(dorks):
+            result.findings.append(
+                Finding(
+                    site=f["site"],
+                    status=Status[f["status"].upper()],
+                    category=f["category"],
+                    url=f["url"],
+                    reason=f["reason"],
+                    extra=f["extra"],
                 )
+            )
         result.duration = time.perf_counter() - started
         return result
 

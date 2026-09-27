@@ -3,25 +3,7 @@ from __future__ import annotations
 import phonenumbers
 from phonenumbers import PhoneNumberFormat
 
-DISPOSABLE_SMS_SITES = [
-    "hs3x.com", "receive-sms-now.com", "smslisten.com", "smsnumbersonline.com",
-    "freesmscode.com", "catchsms.com", "smstibo.com", "smsreceiving.com",
-    "getfreesmsnumber.com", "sellaite.com", "receive-sms-online.info",
-    "receivesmsonline.com", "receive-a-sms.com", "sms-receive.net",
-    "receivefreesms.com", "receive-sms.com", "receivetxt.com", "freephonenum.com",
-    "freesmsverification.com", "receive-sms-online.com", "smslive.co",
-]
-
-SOCIAL_SITES = ["facebook.com", "twitter.com", "linkedin.com", "instagram.com", "vk.com"]
-
-REPUTATION_SITES = [
-    "whosenumber.info", "findwhocallsme.com", "yellowpages.ca", "phonenumbers.ie",
-    "who-calledme.com", "usphonesearch.net", "whocalled.us", "quinumero.info",
-    "numinfo.net", "sync.me", "whocallsyou.de", "pastebin.com", "whycall.me",
-    "locatefamily.com", "spytox.com",
-]
-
-FILE_TYPES = ["doc", "docx", "odt", "pdf", "rtf", "sxw", "psw", "ppt", "pptx", "pps", "csv", "txt", "xls"]
+from ...core.dorks import build_phone_dorks
 
 
 def parse_number(raw: str) -> dict | None:
@@ -74,27 +56,5 @@ def _line_type(num) -> str:
         return "UNKNOWN"
 
 
-def build_dorks(number: str) -> dict[str, list[str]]:
-    e164 = number.replace(" ", "")
-    local = number.split()[-1] if " " in number else number
-    clean = "".join(c for c in number if c.isdigit() or c == "+")
-
-    social = [f"site:{s} \"{clean}\"" for s in SOCIAL_SITES]
-    disposable = [f"site:{s} \"{clean}\"" for s in DISPOSABLE_SMS_SITES]
-    reputation = [f"site:{s} \"{clean}\"" for s in REPUTATION_SITES]
-    reputation.append(f"intitle:\"who called\" \"{clean}\"")
-    reputation.append(f"inurl:\"phone\" \"{clean}\"")
-    individuals = [
-        f"\"{clean}\" -site:facebook.com -site:twitter.com",
-        f"intext:\"{local}\" \"{clean}\"",
-    ]
-    files = [f"\"{clean}\" filetype:{ft}" for ft in FILE_TYPES]
-    generic = [f"\"{clean}\"", f"\"{e164}\""]
-    return {
-        "social_media": social,
-        "disposable_services": disposable,
-        "reputation_reports": reputation,
-        "individuals": individuals,
-        "files": files,
-        "generic": generic,
-    }
+# Re-export for backward compatibility
+build_dorks = build_phone_dorks
