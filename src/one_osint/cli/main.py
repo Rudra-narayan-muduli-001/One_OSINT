@@ -9,11 +9,11 @@ from rich.panel import Panel
 from rich.table import Table
 
 from .. import __version__
-from ..core.config import KeyVault, Settings, SUPPORTED_KEYS
+from ..core.config import KeyVault, Settings
 from ..core.detect import detect_input_type
 from ..core.storage import Storage
-from ..exporters.export import write_export
-from ..modules.base import discover_modules
+from ..exporters import write_export
+from ..modules import discover_modules
 from ..orchestrator.runner import run_investigation
 
 app = typer.Typer(help="one-osint - unified OSINT platform", no_args_is_help=True)
