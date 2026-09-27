@@ -4,7 +4,7 @@ import time
 from urllib.parse import quote
 
 from ...core.config import Settings
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -18,12 +18,13 @@ class EmailReputation(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         key = self.keys.get("emailrep") if self.keys else None
         try:
-            resp = await http.get(
+            resp = await get(
                 f"https://emailrep.io/{quote(target, safe='')}",
                 headers={"Key": key, "Accept": "application/json"},
+                settings=settings,
             )
             if resp.status_code != 200:
                 result.error = f"emailrep.io returned {resp.status_code}"

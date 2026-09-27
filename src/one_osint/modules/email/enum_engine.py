@@ -8,7 +8,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ...core.config import Settings
-from ...core.http_client import get, post, request
+from ...core.http_client import get, post
+from ...core.patterns import _RE_EMAIL, _RE_PHONE
 
 
 @dataclass(slots=True)
@@ -45,9 +46,6 @@ class Rule:
 
 
 RecoveryFn = Callable[[int, str, Any], dict[str, Any] | None]
-
-_RE_EMAIL = re.compile(r"([A-Za-z0-9._%+\-*]+\*?@[A-Za-z0-9.\-*]+\.[A-Za-z*]{2,})")
-_RE_PHONE = re.compile(r"(\+?[0-9*]{4,}[0-9*]{4,})")
 
 
 def _recovery_from_body(body: str) -> dict[str, Any] | None:

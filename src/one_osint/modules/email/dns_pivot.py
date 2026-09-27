@@ -9,7 +9,7 @@ import dns.rdatatype
 
 from ...core.config import Settings
 from ...core.detect import domain_from_email
-from ...core.http_client import get_http_client
+from ...core.http_client import get
 from ...core.result import Finding, ModuleResult, Status
 from ..base import BaseModule
 
@@ -85,7 +85,7 @@ class IpGeolocation(BaseModule):
     async def check(self, target: str) -> ModuleResult:
         started = time.perf_counter()
         result = ModuleResult(name=self.name)
-        http = get_http_client(self.settings or Settings())
+        settings = self.settings or Settings()
         query = target.strip()
         if "@" in query:
             query = query.rsplit("@", 1)[-1]
@@ -101,7 +101,7 @@ class IpGeolocation(BaseModule):
                 result.duration = time.perf_counter() - started
                 return result
         try:
-            resp = await http.get(f"https://ipapi.co/{query}/json/")
+            resp = await get(f"https://ipapi.co/{query}/json/", settings=settings)
             if resp.status_code != 200:
                 result.error = f"ipapi.co returned {resp.status_code}"
                 result.findings.append(Finding(site="ipapi.co", status=Status.ERROR))
