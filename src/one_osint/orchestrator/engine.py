@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -9,10 +8,10 @@ from typing import Any
 
 from ..core.config import KeyVault, Settings
 from ..core.detect import InputType
-from ..core.http_client import get_http_client
 from ..core.result import ModuleResult
 from ..core.storage import Storage
-from ..modules.base import BaseModule, discover_modules, get_modules_for
+from ..modules import discover_modules
+from ..modules.base import BaseModule, get_modules_for
 
 EventSink = Callable[[dict[str, Any]], Awaitable[None]]
 
@@ -39,12 +38,7 @@ class Investigation:
                 pass
 
     async def run(self) -> dict[str, Any]:
-        try:
-            return await self._run_pipeline()
-        finally:
-            client = get_http_client()
-            with contextlib.suppress(Exception):
-                await client.aclose()
+        return await self._run_pipeline()
 
     async def _run_pipeline(self) -> dict[str, Any]:
         inv_id = None
