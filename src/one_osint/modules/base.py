@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import importlib
-import inspect
-import pkgutil
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
@@ -35,33 +32,13 @@ class BaseModule(ABC):
         raise NotImplementedError
 
 
-_MODULES: dict[str, type[BaseModule]] | None = None
-
-
-def discover_modules() -> dict[str, type[BaseModule]]:
-    global _MODULES
-    if _MODULES is not None:
-        return _MODULES
-    _MODULES = {}
-    pkg = importlib.import_module(__package__)
-    for modinfo in pkgutil.walk_packages(pkg.__path__, __package__ + "."):
-        try:
-            mod = importlib.import_module(modinfo.name)
-        except Exception:
-            continue
-        for _, cls in inspect.getmembers(mod, inspect.isclass):
-            if (
-                cls is not BaseModule
-                and issubclass(cls, BaseModule)
-                and cls.name
-                and cls.__module__ == modinfo.name
-            ):
-                _MODULES[cls.name] = cls
-    return _MODULES
+def _get_registry():
+    from . import discover_modules
+    return discover_modules()
 
 
 def get_module(name: str, keys=None, settings=None) -> BaseModule:
-    cls = discover_modules().get(name)
+    cls = _get_registry().get(name)
     if cls is None:
         raise KeyError(f"unknown module: {name}")
     return cls(keys=keys, settings=settings)
@@ -74,7 +51,7 @@ def get_modules_for(
     allow_opt_in: bool = False,
 ) -> list[BaseModule]:
     out: list[BaseModule] = []
-    for _name, cls in sorted(discover_modules().items()):
+    for _name, cls in sorted(_get_registry().items()):
         mod = cls(keys=keys, settings=settings)
         if mod.can_run(input_type) and (allow_opt_in or not mod.opt_in):
             out.append(mod)
