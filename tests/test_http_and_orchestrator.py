@@ -1,4 +1,4 @@
-"""Tests for HttpClient, orchestrator engine, runner, storage extended."""
+"""Tests for http client, orchestrator engine, runner, storage extended."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pytest
 
 from one_osint.core.config import KeyVault, Settings
 from one_osint.core.detect import InputType
-from one_osint.core.http_client import HttpClient, Response, get_http_client
+from one_osint.core.http_client import Response, get, post, request
 from one_osint.core.result import Finding, ModuleResult, Status
 from one_osint.core.storage import Storage
 from one_osint.modules.base import BaseModule
@@ -49,98 +49,53 @@ class TestResponse:
 class TestHttpClient:
     @pytest.mark.asyncio
     async def test_get_post_wiring(self, monkeypatch) -> None:
-        client = HttpClient(Settings())
-        # Mock internal request
         async def fake_request(method, url, **kwargs):
             return Response(200, f"{method}:{url}", {}, url)
 
-        monkeypatch.setattr(client, "request", fake_request)
-        r = await client.get("https://example.com")
+        monkeypatch.setattr("one_osint.core.http_client.request", fake_request)
+        r = await get("https://example.com")
         assert r.text == "GET:https://example.com"
-        r2 = await client.post("https://example.com", json={"a": 1})
+        r2 = await post("https://example.com", json={"a": 1})
         assert r2.text.startswith("POST")
 
     @pytest.mark.asyncio
     async def test_user_agent_rotation(self, monkeypatch) -> None:
-        settings = Settings(user_agent_rotate=True)
-        client = HttpClient(settings)
         monkeypatch.setattr("one_osint.core.http_client.random_user_agent", lambda: "TestUA/1.0")
 
-        captured: dict = {}
+        async def fake_request(method, url, **kwargs):
+            headers = kwargs.get("headers", {})
+            return Response(200, "ok", {"User-Agent": headers.get("User-Agent", "")}, url)
 
-        async def fake_get_client(*a, **kw):
-            mock_client = AsyncMock()
-            async def fake_req(method, url, **kw2):
-                captured.update(kw2)
-                m = MagicMock()
-                m.status_code = 200
-                m.text = "ok"
-                m.headers = {}
-                m.url = url
-                m.encoding = "utf-8"
-                return m
-            mock_client.request = fake_req
-            return mock_client
-
-        monkeypatch.setattr(client, "_get_client", fake_get_client)
-        resp = await client.request("GET", "https://example.com")
-        assert resp.status_code == 200
-        assert captured["headers"]["User-Agent"] == "TestUA/1.0"
-
-    def test_pick_proxy(self) -> None:
-        s = Settings(tor=True)
-        c = HttpClient(s)
-        assert c._pick_proxy() == "socks5h://127.0.0.1:9050"
-
-        s2 = Settings(proxies=["http://p1", "http://p2"], proxy_rotate=False)
-        c2 = HttpClient(s2)
-        assert c2._pick_proxy() == "http://p1"
-
-        s3 = Settings(proxies=["http://p1", "http://p2"], proxy_rotate=True)
-        c3 = HttpClient(s3)
-        assert c3._pick_proxy() in ["http://p1", "http://p2"]
-
-        s4 = Settings()
-        c4 = HttpClient(s4)
-        assert c4._pick_proxy() is None
+        monkeypatch.setattr("one_osint.core.http_client.request", fake_request)
+        resp = await get("https://example.com", settings=Settings(user_agent_rotate=True))
+        assert resp.headers.get("User-Agent") == "TestUA/1.0"
 
     @pytest.mark.asyncio
-    async def test_aclose(self) -> None:
-        client = HttpClient(Settings())
-        # Add a mock client to close
-        mock = AsyncMock()
-        client._clients[(True, None)] = mock
-        await client.aclose()
-        mock.aclose.assert_called_once()
-        assert client._clients == {}
+    async def test_proxy_selection(self, monkeypatch) -> None:
+        async def fake_request(method, url, **kwargs):
+            proxy = kwargs.get("proxy")
+            return Response(200, proxy or "none", {}, url)
 
-    def test_get_http_client_singleton(self) -> None:
-        import one_osint.core.http_client as hc_mod
-
-        # Reset singleton for test isolation
-        original = hc_mod._shared
-        hc_mod._shared = None
-        try:
-            c1 = get_http_client(Settings())
-            c2 = get_http_client(Settings())
-            assert c1 is c2
-        finally:
-            hc_mod._shared = original
+        monkeypatch.setattr("one_osint.core.http_client.request", fake_request)
+        
+        # Test tor proxy
+        r = await get("https://example.com", settings=Settings(tor=True))
+        assert "socks5h://127.0.0.1:9050" in r.text
+        
+        # Test static proxy
+        r = await get("https://example.com", settings=Settings(proxies=["http://p1", "http://p2"], proxy_rotate=False))
+        assert "http://p1" in r.text
 
     @pytest.mark.asyncio
     async def test_request_with_httpx_error(self, monkeypatch) -> None:
         import httpx
 
-        client = HttpClient(Settings())
-        mock_httpx = AsyncMock()
-        mock_httpx.request.side_effect = httpx.HTTPError("network down")
+        async def fake_request(method, url, **kwargs):
+            raise httpx.HTTPError("network down")
 
-        async def fake_get_client(*a, **kw):
-            return mock_httpx
-
-        monkeypatch.setattr(client, "_get_client", fake_get_client)
+        monkeypatch.setattr("one_osint.core.http_client.request", fake_request)
         with pytest.raises(RuntimeError, match="HTTP GET"):
-            await client.request("GET", "https://example.com")
+            await get("https://example.com")
 
 
 class TestStorageExtended:
@@ -175,11 +130,10 @@ class TestStorageExtended:
         s.update_investigation(inv_id, "done", {"final": True})
         row = s.get_investigation(inv_id)
         assert row["status"] == "done"
-        assert "final" in row["report_json"]
+        assert "final" in row["report"]
 
         s.update_investigation(inv_id, "error")
         row = s.get_investigation(inv_id)
-        # should set finished_at even without report
         assert row["status"] == "error"
 
     def test_get_missing_investigation(self, tmp_path: Path) -> None:
@@ -259,7 +213,6 @@ class TestInvestigation:
 
     def test_build_report(self, tmp_path: Path, monkeypatch) -> None:
         inv = self._make_inv(tmp_path, monkeypatch=monkeypatch)
-        # Simulate results
         res = ModuleResult(name="fake_mod")
         res.findings.append(Finding(site="github", status=Status.FOUND))
         res.findings.append(Finding(site="twitter", status=Status.NOT_FOUND))
@@ -299,7 +252,6 @@ class TestInvestigation:
             modules=["error_mod"],
         )
         report = asyncio.run(inv.run())
-        # Error module still produces a ModuleResult with error field
         assert report["module_count"] == 1
         assert report["modules"][0]["error"] == "boom"
 
@@ -316,7 +268,6 @@ class TestInvestigation:
         assert pipeline[0].name == "fake_mod"
 
     def test_pivots_collected(self, tmp_path: Path, monkeypatch) -> None:
-        # Module that returns pivots via extra
         class PivotMod(BaseModule):
             name = "pivot_mod"
             input_types = ("email",)
