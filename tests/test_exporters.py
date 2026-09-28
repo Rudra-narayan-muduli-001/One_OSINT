@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from one_osint.exporters.export import (
+from one_osint.exporters import (
     _neutralize,
     export_csv,
     export_html,
