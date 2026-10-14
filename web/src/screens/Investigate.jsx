@@ -8,6 +8,7 @@ import {
   IAt,IDownload,IFileSearch,IPlay,IGlobe,IMail,INetwork,IPhone,
   IRefresh,IShapes,IStop,IX,IChevD,ISearch,IExt,
 } from '../icons.jsx'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const TYPE_ICONS = { all:IShapes, username:IAt, email:IMail, phone:IPhone, domain:IGlobe, ip:INetwork, google:null, file:IFileSearch }
 const TYPE_LABEL = { all:'Everything', username:'Username', email:'Email', phone:'Phone', domain:'Website', ip:'IP address', google:'Google', file:'File' }
@@ -119,18 +120,23 @@ function IdleView(){
         </div>
 
         {recents.length>0 && (
-          <div className="recents">
+          <motion.div
+            className="recents"
+            initial="hidden"
+            animate="visible"
+            variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}
+          >
             <span className="micro">Searched before</span>
-            {recents.map(t=>(
-              <span key={t} className="recent-chip">
+            {recents.map((t, idx)=>(
+              <motion.span key={t} className="recent-chip" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
                 <i className="recent-dot" style={{ background:(ENGINES[detectType(t)]||ENGINES.misc).hue }}/>
                 <button onClick={()=>{ setTarget(t); launch(t) }} title={t}>{t}</button>
                 <button className="iconbtn" aria-label={`Forget ${t}`} onClick={()=>{ dropRecent(t); setRecents(loadRecents()) }}>
                   <IX size={11}/>
                 </button>
-              </span>
+              </motion.span>
             ))}
-          </div>
+          </motion.div>
         )}
 
         <div className="how">
@@ -156,14 +162,14 @@ function IdleView(){
         <h2 style={{ fontSize:19 }}>What gets checked</h2>
         <span className="micro">{visibleModules.length} sources</span>
       </div>
-      <div className="engines-grid">
+      <motion.div className="engines-grid" initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
         {visibleModules.length===0
-          ? Array.from({length:8}).map((_,i)=>(<div key={i} className="card mod-card"><div className="skeleton" style={{height:20,width:'55%'}}/><div className="skeleton" style={{height:14,width:'90%'}}/></div>))
-          : visibleModules.map(m=>{
+          ? Array.from({length:8}).map((_,i)=>(<motion.div key={i} className="card mod-card" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}><div className="skeleton" style={{height:20,width:'55%'}}/><div className="skeleton" style={{height:14,width:'90%'}}/></motion.div>))
+          : visibleModules.map((m, idx)=>{
               const eng = engineOf(m.name)
               const e = ENGINES[eng]
               return (
-                <div key={m.name} className="card mod-card">
+                <motion.div key={m.name} className="card mod-card" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
                   <div className="top">
                     <EngineDotHue hue={e.hue}/>
                     <div>
@@ -177,10 +183,10 @@ function IdleView(){
                     {m.requires_key && <span className="chip chip-warn">needs free API key</span>}
                     {m.opt_in && <span className="chip chip-info">deep scan</span>}
                   </div>
-                </div>
+                </motion.div>
               )
             })}
-      </div>
+      </motion.div>
     </div>
   )
 }
@@ -252,9 +258,15 @@ function LiveView(){
       </div>
 
       <div className="run-grid">
-        {run.modules.map(m=>(
-          <ModuleCard key={m.name} m={m} report={run.report} invId={run.invId}/>
-        ))}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}
+        >
+          {run.modules.map(m=>(
+            <ModuleCard key={m.name} m={m} report={run.report} invId={run.invId}/>
+          ))}
+        </motion.div>
       </div>
 
       <LogDrawer events={run.events}/>
@@ -385,18 +397,32 @@ function ModuleCard({ m,invId,forceRows }){
       {m.summary && Object.keys(m.summary).length>0 && (
         <div className="rsummary">{JSON.stringify(m.summary)}</div>
       )}
-      {open && (findings.length>0 || m.status==='running') && (
-        <div className="rbody">
-          {findings.length===0 && m.status==='running' &&
-            Array.from({length:3}).map((_,i)=>(<div key={i} className="finding"><div className="skeleton" style={{height:14,width:i%2?'42%':'58%'}}/></div>))}
-          {findings.map((f,i)=><FindingRow key={i} f={f} index={Math.min(i,12)}/>)}
-          {forceRows && findings.length>6 && invId && (
-            <a className="btn btn-ghost btn-sm more-btn" href={`#/report/${invId}`}>
-              Open full report…
-            </a>
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (findings.length>0 || m.status==='running') && (
+          <motion.div
+            className="rbody"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {findings.length===0 && m.status==='running' &&
+              Array.from({length:3}).map((_,i)=>(<motion.div key={i} className="finding" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}><div className="skeleton" style={{height:14,width:i%2?'42%':'58%'}}/></motion.div>))}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.03 } } }}
+            >
+              {findings.map((f,i)=><FindingRow key={i} f={f} index={Math.min(i,12)}/>)}
+            </motion.div>
+            {forceRows && findings.length>6 && invId && (
+              <a className="btn btn-ghost btn-sm more-btn" href={`#/report/${invId}`}>
+                Open full report…
+              </a>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -452,23 +478,38 @@ function LogDrawer({ events }){
   }
 
   return (
-    <div className="drawer" style={{ height:collapsed?32:height+24 }}>
+    <motion.div
+      className="drawer"
+      style={{ height: collapsed ? 32 : height + 24 }}
+      animate={{ height: collapsed ? 32 : height + 24 }}
+      transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       <div className="drawer-grip" onPointerDown={startDrag}/>
       <div className="drawer-head" onClick={()=>setCollapsed(c=>!c)}>
         <span className="micro">Live log</span>
         <span className="micro" style={{ fontWeight:400,textTransform:'none',letterSpacing:0 }}>{events.length} events</span>
         <span style={{ marginLeft:'auto' }}><IChevD size={15} style={{ transform:collapsed?'rotate(180deg)':'none',transition:'transform var(--t-fast)',color:'var(--text-3)' }}/></span>
       </div>
-      {!collapsed && (
-        <div className="drawer-body" ref={bodyRef} onScroll={onScroll}>
-          {events.map((evt,i)=>(
-            <div key={i} className={`logline lv-${level(evt)}`}>
-              <span className="ts">{new Date().toLocaleTimeString([],{ hour12:false })}</span>
-              <span>{line(evt)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      <AnimatePresence>
+        {!collapsed && (
+          <motion.div
+            className="drawer-body"
+            ref={bodyRef}
+            onScroll={onScroll}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: height }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {events.map((evt,i)=>(
+              <div key={i} className={`logline lv-${level(evt)}`}>
+                <span className="ts">{new Date().toLocaleTimeString([],{ hour12:false })}</span>
+                <span>{line(evt)}</span>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
