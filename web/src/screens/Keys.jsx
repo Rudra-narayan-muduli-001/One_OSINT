@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { EmptyState } from '../components/ui.jsx'
 import { ICopy,IInfo,IKey } from '../icons.jsx'
+import { motion } from 'framer-motion'
 
 const SETUP_STEPS = [
   { n:'1.', b:'Create a file called .env', p:'In the same folder as this program (next to run.py). One key per line, like:  HIBP_API_KEY=abc123' },
@@ -48,26 +49,32 @@ export default function Keys(){
         </button>
       </div>
 
-      <div className="how" style={{ margin:'0 auto 26px' }}>
-        {SETUP_STEPS.map(s=>(
-          <div key={s.n} className="card step">
-            <span className="num">{s.n}</span>
-            <b>{s.b}</b>
-            <p>{s.p}</p>
-          </div>
-        ))}
+<div className="how" style={{ margin:'0 auto 26px' }}>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.08 } } }}
+        >
+          {SETUP_STEPS.map(s=>(
+            <motion.div key={s.n} className="card step" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
+              <span className="num">{s.n}</span>
+              <b>{s.b}</b>
+              <p>{s.p}</p>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
 
       {!keys && !error && Array.from({length:6}).map((_,i)=>(
         <div key={i} className="skeleton" style={{ height:62,marginBottom:10 }}/>
       ))}
-      {error && <EmptyState title="Couldn’t load key status">{error}</EmptyState>}
+      {error && <EmptyState title="Couldn't load key status">{error}</EmptyState>}
       {keys && keys.length===0 && <EmptyState title="No integrations registered">This build exposes no keyed services.</EmptyState>}
 
       {keys && keys.length>0 && (
-        <div className="keys-list">
+        <motion.div className="keys-list" initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
           {keys.map(k=>(
-            <div key={k.name} className={`card key-row${k.set?'':''}`}>
+            <motion.div key={k.name} className={`card key-row${k.set?'':''}`} variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
               <span className="kavatar"><IKey size={15}/></span>
               <div className="key-main">
                 <div className="key-name">{k.description}</div>
@@ -77,9 +84,9 @@ export default function Keys(){
               {k.set
                 ? <span className="chip chip-ok">Ready</span>
                 : <span className="chip chip-muted">Not set</span>}
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   )

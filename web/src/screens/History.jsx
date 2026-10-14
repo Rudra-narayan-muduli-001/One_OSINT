@@ -4,6 +4,7 @@ import { absTime, ENGINES, engineOf, relTime } from '../engines.js'
 import { useRun, useToast } from '../state.jsx'
 import { EmptyState, Modal, StatusChip } from '../components/ui.jsx'
 import { IExt,IPlay,IRefresh,ISearch,ITrash } from '../icons.jsx'
+import { motion } from 'framer-motion'
 
 const TYPE_FILTERS = ['all','username','email','phone','domain','ip','unknown']
 const DATE_PRESETS = [
@@ -135,24 +136,30 @@ export default function History({ navigate }){
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r=>(
-                <tr key={r.id}>
-                  <td><input type="checkbox" className="rowcheck" checked={selected.has(r.id)} onChange={()=>toggleOne(r.id)} aria-label={`Select ${r.target}`}/></td>
-                  <td className="mono" style={{ maxWidth:320,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{r.target}</td>
-                  <td>
-                    <span className="chip" style={chipStyleFor(engineOf(r.input_type))}>{(ENGINES[engineOf(r.input_type)]||ENGINES.misc).label}</span>
-                  </td>
-                  <td><InvStatus status={r.status}/></td>
-                  <td className="rel-time" title={absTime(r.created_at)}>{relTime(r.created_at)}</td>
-                  <td>
-                    <div className="cell-actions">
-                      <a className="iconbtn" href={`#/report/${r.id}`} title="Open report"><IExt size={15}/></a>
-                      <button className="iconbtn" title="Re-run" onClick={()=>rerun(r.target)}><IRefresh size={15}/></button>
-                      <button className="iconbtn" title="Delete" onClick={()=>setConfirmIds([r.id])}><ITrash size={15}/></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              <motion.tr
+                initial="hidden"
+                animate="visible"
+                variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.03 } } }}
+              >
+                {filtered.map((r, idx) => (
+                  <motion.tr key={r.id} variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0 } }}>
+                    <td><input type="checkbox" className="rowcheck" checked={selected.has(r.id)} onChange={()=>toggleOne(r.id)} aria-label={`Select ${r.target}`}/></td>
+                    <td className="mono" style={{ maxWidth:320,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{r.target}</td>
+                    <td>
+                      <span className="chip" style={chipStyleFor(engineOf(r.input_type))}>{(ENGINES[engineOf(r.input_type)]||ENGINES.misc).label}</span>
+                    </td>
+                    <td><InvStatus status={r.status}/></td>
+                    <td className="rel-time" title={absTime(r.created_at)}>{relTime(r.created_at)}</td>
+                    <td>
+                      <div className="cell-actions">
+                        <a className="iconbtn" href={`#/report/${r.id}`} title="Open report"><IExt size={15}/></a>
+                        <button className="iconbtn" title="Re-run" onClick={()=>rerun(r.target)}><IRefresh size={15}/></button>
+                        <button className="iconbtn" title="Delete" onClick={()=>setConfirmIds([r.id])}><ITrash size={15}/></button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </motion.tr>
             </tbody>
           </table>
         </div>
