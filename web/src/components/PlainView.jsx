@@ -2,6 +2,7 @@ import React from 'react'
 import { buildPlain, hueFor, FRIENDLY_KEYS, friendlyValue } from '../plain.jsx'
 import { humanModule } from '../engines.js'
 import { IExt,IOkCircle,IWarn,IInfo } from '../icons.jsx'
+import { motion } from 'framer-motion'
 
 const STAMP_ICONS = { ok:IOkCircle, crit:IWarn, warn:IWarn, muted:IInfo }
 
@@ -102,7 +103,11 @@ export function PlainView({ report }){
   const plain = buildPlain(report)
   const StampIcon = STAMP_ICONS[plain.stampKind] || IInfo
   return (
-    <div>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.08 } } }}
+    >
       <header className="verdict anim-rise">
         <div className="overline micro">Investigation result</div>
         <h2>{plain.headline}</h2>
@@ -115,7 +120,7 @@ export function PlainView({ report }){
       {plain.sections.map(sec=>{
         const items = sec._static ? plain.items[sec.kind] : sec.kind==='accounts' ? plain.items.accounts : plain.items[sec.kind]
         return (
-        <section key={sec.id} id={`sec-${sec.id}`} className="plain-section">
+        <motion.section key={sec.id} id={`sec-${sec.id}`} className="plain-section" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.04 } } }}>
           <div className="rule-label micro">{sec.title}</div>
           <div className="plain-head">
             <h3>{sec.title}</h3>
@@ -124,31 +129,40 @@ export function PlainView({ report }){
           <p className="plain-expl">{sec.expl}</p>
 
           {sec.kind==='breaches' && (
-            <div className="breach-list">
+            <motion.div className="breach-list" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
               {items.map((f,i)=><BreachCard key={i} f={f} i={i}/>)}
-            </div>
+            </motion.div>
           )}
           {sec.kind==='accounts' && (
-            <div className="acct-grid">
+            <motion.div className="acct-grid" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
               {items.map((f,i)=><AccountCard key={`${f.site}${f.url}${i}`} f={f} i={i}/>)}
-            </div>
+            </motion.div>
           )}
           {sec.kind==='facts' && <FactsList items={items}/>}
           {sec.kind==='others' && <FactsList items={items}/>}
-          {sec.kind==='leads' && <LeadGrid items={items}/>}
+          {sec.kind==='leads' && (
+            <motion.div className="lead-grid" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
+              {items.map((f,i)=>(
+                <motion.a key={i} className="card lead-card" href={f.url} target="_blank" rel="noreferrer" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                  <IExt size={14}/>
+                  <span>{f.extra?.query || f.reason || f.site}</span>
+                </motion.a>
+              ))}
+            </motion.div>
+          )}
           {sec.kind==='errors' && (
-            <div className="card kv-card">
+            <motion.div className="card kv-card" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.04 } } }}>
               {items.map((e,i)=>(
-                <div className="kv" key={i}>
+                <motion.div className="kv" key={i} whileHover={{ x: 4 }}>
                   <span className="k">{humanModule(e.name)}</span>
                   <span className="v mono" style={{ color:'var(--crit-text)' }}>{e.reason}</span>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
-        </section>
+        </motion.section>
         )
       })}
-    </div>
+    </motion.div>
   )
 }

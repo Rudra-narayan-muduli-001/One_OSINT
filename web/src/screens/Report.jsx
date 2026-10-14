@@ -5,6 +5,7 @@ import { useRun, useToast } from '../state.jsx'
 import { CopyBtn, EmptyState, FindingRow, StatusChip, TechToggle } from '../components/ui.jsx'
 import { PlainView } from '../components/PlainView.jsx'
 import { ICopy,IDownload,IRefresh,IWarn } from '../icons.jsx'
+import { motion } from 'framer-motion'
 
 export default function Report({ id,navigate }){
   const runCtx = useRun()
@@ -107,21 +108,21 @@ export default function Report({ id,navigate }){
       </div>
 
       {tech && (
-        <div className="rep-layout">
+        <motion.div className="rep-layout" initial="hidden" animate="visible" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.05 } } }}>
           <nav className="rep-rail" aria-label="Report sections">
             <span className="micro">Sources</span>
             {sections.map(s=>(
-              <button key={s.name} className="rail-item" onClick={()=>scrollToId(`sec-${s.name}`)}>
+              <motion.button key={s.name} className="rail-item" onClick={()=>scrollToId(`sec-${s.name}`)} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <i style={{ width:8,height:8,borderRadius:50,background:(ENGINES[engineOf(s.name)]||ENGINES.misc).hue }}/>
                 {humanModule(s.name)}
                 <span className="rail-count">{s.error?'!':s._findings.length}</span>
-              </button>
+              </motion.button>
             ))}
           </nav>
 
           <div style={{ minWidth:0 }}>
             {sections.map(s=>(
-              <section key={s.name} id={`sec-${s.name}`} className="card rep-section">
+              <motion.section key={s.name} id={`sec-${s.name}`} className="card rep-section" variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.03 } } }}>
                 <div className="rhead">
                   <span className="engine-dot" style={{ '--ed':(ENGINES[engineOf(s.name)]||ENGINES.misc).hue }}/>
                   <div style={{minWidth:0}}>
@@ -139,16 +140,16 @@ export default function Report({ id,navigate }){
                 {!s.error && s.summary && Object.keys(s.summary).length>0 &&
                   <div className="rsummary">{JSON.stringify(s.summary)}</div>}
                 {!s.error && s._findings.length>0 && (
-                  <div className="rbody">
+                  <motion.div className="rbody" variants={{ hidden: { opacity: 0 }, visible: { transition: { staggerChildren: 0.03 } } }}>
                     {s._findings.map((f,i)=><FindingRow key={i} f={f} index={Math.min(i,10)} alert={isCritModule(s.name)&&f.status==='found'}/>)}
-                  </div>
+                  </motion.div>
                 )}
-              </section>
+              </motion.section>
             ))}
 
             {sections.length===0 && <EmptyState title="Nothing recorded">This investigation completed without module results.</EmptyState>}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )
