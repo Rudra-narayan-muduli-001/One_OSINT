@@ -12,10 +12,11 @@
   display:inline-flex;align-items:center;gap:6px;
   font-size:12.5px;font-weight:600;color:var(--text-2);
   border:1px solid var(--border);background:var(--card);
-  transition:all var(--t-fast);
+  transition:all var(--t-fast),transform var(--t-fast);
 }
 .typechip svg{width:13px;height:13px}
-.typechip:hover{border-color:var(--ink-400)}
+.typechip:hover{border-color:var(--ink-400);transform:scale(1.02)}
+.typechip:active{transform:scale(0.98)}
 .typechip.sel{color:var(--accent);border-color:var(--accent);background:var(--accent-tint)}
 .typechip.suggest{border-style:dashed;border-color:var(--ink-400)}
 

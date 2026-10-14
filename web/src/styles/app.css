@@ -25,11 +25,12 @@
   position:relative;display:flex;align-items:center;gap:11px;
   height:38px;padding:0 12px;border-radius:var(--r-md);
   color:var(--text-2);font-weight:550;font-size:13.5px;
-  transition:background var(--t-fast),color var(--t-fast);
+  transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast);
   text-decoration:none!important;
 }
 .navitem:hover{background:var(--ink-850);color:var(--text-1)}
 .navitem:hover{text-decoration:none!important;border-bottom:none!important}
+.navitem:active{transform:scale(0.98)}
 .navitem.active{background:var(--card);color:var(--accent);box-shadow:var(--shadow-1);font-weight:650}
 .sidenav .microlabel{padding:16px 12px 6px}
 
@@ -91,10 +92,11 @@ kbd{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
   height:36px;padding:0 16px;border-radius:var(--r-full);
   font-size:13.5px;font-weight:650;letter-spacing:.01em;white-space:nowrap;
-  transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast);
+  transition:background var(--t-fast),border-color var(--t-fast),color var(--t-fast),box-shadow var(--t-fast),transform var(--t-fast);
   text-decoration:none!important;border:1px solid transparent;
 }
 .btn:hover{text-decoration:none!important;border-bottom:none!important}
+.btn:active{transform:scale(0.98)}
 .btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
 .btn-primary{background:var(--accent);color:var(--text-inverse)}
 .btn-primary:hover{background:var(--accent-hover)}
@@ -114,10 +116,11 @@ kbd{
 .iconbtn{
   width:32px;height:32px;border-radius:var(--r-sm);
   display:inline-flex;align-items:center;justify-content:center;
-  color:var(--text-3);transition:background var(--t-fast),color var(--t-fast);
+  color:var(--text-3);transition:background var(--t-fast),color var(--t-fast),transform var(--t-fast);
   text-decoration:none!important;
 }
 .iconbtn:hover{background:var(--ink-850);color:var(--text-1)}
+.iconbtn:active{transform:scale(0.9)}
 
 /* ============ Inputs ============ */
 .input{
@@ -134,7 +137,10 @@ kbd{
   display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;
   border-radius:var(--r-full);font-size:11.5px;font-weight:650;letter-spacing:.02em;
   white-space:nowrap;border:1px solid transparent;
+  transition:transform var(--t-fast),box-shadow var(--t-fast),background var(--t-fast);
 }
+.chip:hover{transform:scale(1.02)}
+.chip:active{transform:scale(0.98)}
 .chip svg{width:12px;height:12px}
 .chip .dotp{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulseDot 1.3s ease-in-out infinite}
 .chip-ok{background:var(--ok-tint);color:var(--ok-text);border-color:var(--ok-border)}
@@ -151,6 +157,14 @@ kbd{
 .card{
   background:var(--card);border:1px solid var(--border);
   border-radius:var(--r-lg);box-shadow:var(--shadow-1);
+  transition:box-shadow var(--t-med),border-color var(--t-fast),transform var(--t-fast);
+}
+.card:hover{
+  box-shadow:var(--shadow-2);
+  border-color:var(--ink-400);
+}
+.card:active{
+  transform:scale(0.995);
 }
 
 /* ============ Tables (technical mode) ============ */
