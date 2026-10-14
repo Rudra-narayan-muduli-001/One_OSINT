@@ -9,6 +9,7 @@ import Keys from './screens/Keys.jsx'
 import {
   ICrosshair,IHistory,IKey,IActivity,IPanel,ISearch,
 } from './icons.jsx'
+import { AnimatePresence, motion } from 'framer-motion'
 
 const NAV = [
   { route:'investigate', label:'New search', Icon:ISearch },
@@ -68,7 +69,7 @@ export default function App(){
   const navigate = useCallback((r)=>{ location.hash = `#/${r}` },[])
   const crumb = CRUMBS[route.page] || 'Search'
 
-  return (
+return (
     <RunProvider>
       <div className={`shell${rail?' rail':''}`}>
         <aside className="sidebar">
@@ -116,15 +117,25 @@ export default function App(){
               <kbd>⌘K</kbd>
             </button>
           </header>
-          <main className="content" key={`${route.page}/${route.arg||''}`}>
-            <ErrorBoundary>
-              <Screen route={route} navigate={navigate}/>
-            </ErrorBoundary>
+          <main className="content">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${route.page}/${route.arg||''}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+                <ErrorBoundary>
+                  <Screen route={route} navigate={navigate}/>
+                </ErrorBoundary>
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
-      </div>
 
-      <PaletteHost open={paletteOpen} onClose={()=>setPaletteOpen(false)} navigate={navigate}/>
+        <PaletteHost open={paletteOpen} onClose={()=>setPaletteOpen(false)} navigate={navigate}/>
+      </div>
     </RunProvider>
   )
 }
