@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { api, wsConnect } from './api.js'
 import { IOkCircle,IWarn,ICrit,IInfo,IX } from './icons.jsx'
 import { pushRecent as pushRecentTarget } from './engines.js'
+import { motion, AnimatePresence } from 'framer-motion'
 
 /* ---------- Toasts ---------- */
 
@@ -28,16 +29,25 @@ export function ToastProvider({ children }){
     <ToastCtx.Provider value={{ push }}>
       {children}
       <div className="toasts" role="status" aria-live="polite">
-        {toasts.map(t=>{
-          const Icon = TOAST_ICONS[t.kind] || IInfo
-          return (
-            <div key={t.id} className={`toast toast-${t.kind}`}>
-              <Icon size={16}/>
-              <p>{t.msg}</p>
-              <button className="iconbtn" onClick={()=>dismiss(t.id)} aria-label="Dismiss"><IX size={14}/></button>
-            </div>
-          )
-        })}
+        <AnimatePresence>
+          {toasts.map(t=>{
+            const Icon = TOAST_ICONS[t.kind] || IInfo
+            return (
+              <motion.div
+                key={t.id}
+                className={`toast toast-${t.kind}`}
+                initial={{ opacity: 0, x: 60, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 60, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+              >
+                <Icon size={16}/>
+                <p>{t.msg}</p>
+                <button className="iconbtn" onClick={()=>dismiss(t.id)} aria-label="Dismiss"><IX size={14}/></button>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
       </div>
     </ToastCtx.Provider>
   )

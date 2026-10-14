@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { detectType, ENGINES } from '../engines.js'
 import { ICrosshair,IGlobe,IHistory,IKey,IPlay,ISearch } from '../icons.jsx'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function CommandPalette({ open,onClose,navigate,onRun,lastReportId }){
   const [q,setQ] = useState('')
@@ -53,37 +54,59 @@ export default function CommandPalette({ open,onClose,navigate,onRun,lastReportI
   }
 
   return (
-    <div className="scrim" style={{ zIndex:120 }} onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose() }}>
-      <div className="palette" role="dialog" aria-modal="true" aria-label="Command palette">
-        <input
-          autoFocus className="palette-input"
-          placeholder="Search screens or type a target to investigate…"
-          value={q}
-          onChange={(e)=>setQ(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
-        <div className="palette-list" ref={listRef}>
-          {items.length===0 && <div className="pal-empty">No matches — paste a target above to run it.</div>}
-          {items.map((it,i)=>(
-            <button
-              key={i}
-              className={`pal-item${i===sel?' sel':''}`}
-              onMouseEnter={()=>setSel(i)}
-              onClick={()=>exec(it)}
-            >
-              <it.Icon size={16}/>
-              <span>{it.label}</span>
-              {it.kind==='run' && <span className="hint">enter ⏎</span>}
-            </button>
-          ))}
-        </div>
-        <div className="palette-foot">
-          <span><kbd>↑↓</kbd> navigate</span>
-          <span><kbd>⏎</kbd> select</span>
-          <span><kbd>esc</kbd> close</span>
-        </div>
-      </div>
-    </div>
+    <AnimatePresence>
+      <motion.div
+        className="scrim"
+        style={{ zIndex:120 }}
+        onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose() }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+      >
+        <motion.div
+          className="palette"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command palette"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          <input
+            autoFocus className="palette-input"
+            placeholder="Search screens or type a target to investigate…"
+            value={q}
+            onChange={(e)=>setQ(e.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          <div className="palette-list" ref={listRef}>
+            {items.length===0 && <div className="pal-empty">No matches — paste a target above to run it.</div>}
+            {items.map((it,i)=>(
+              <motion.button
+                key={i}
+                className={`pal-item${i===sel?' sel':''}`}
+                onMouseEnter={()=>setSel(i)}
+                onClick={()=>exec(it)}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                transition={{ duration: 0.1 }}
+              >
+                <it.Icon size={16}/>
+                <span>{it.label}</span>
+                {it.kind==='run' && <span className="hint">enter ⏎</span>}
+              </motion.button>
+            ))}
+          </div>
+          <div className="palette-foot">
+            <span><kbd>↑↓</kbd> navigate</span>
+            <span><kbd>⏎</kbd> select</span>
+            <span><kbd>esc</kbd> close</span>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 

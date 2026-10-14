@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ENGINES, engineOf, humanModule, statusVariant } from '../engines.js'
 import { ICheck,IChevD,IExt,IWarn } from '../icons.jsx'
 import { RadarArt } from '../icons.jsx'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export function StatusChip({ status, children, pulse }){
   const v = statusVariant(status)
@@ -52,13 +53,31 @@ export function Modal({ open,onClose,title,children,actions }){
   },[open,onClose])
   if(!open) return null
   return (
-    <div className="scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose() }}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
-        <h3>{title}</h3>
-        <p>{children}</p>
-        <div className="modal-actions">{actions}</div>
-      </div>
-    </div>
+    <AnimatePresence>
+      <motion.div
+        className="scrim"
+        onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose() }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+      >
+        <motion.div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          <h3>{title}</h3>
+          <p>{children}</p>
+          <div className="modal-actions">{actions}</div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
@@ -100,14 +119,24 @@ export function FindingRow({ f, index=0, alert=false }){
           ? <a className="f-url" href={f.url} target="_blank" rel="noreferrer">{f.url}</a>
           : (f.reason ? <span className="f-url">{f.reason}</span> : <span className="f-url"/>)}
         {extra && (
-          <button className="iconbtn f-expand" onClick={()=>setOpen(o=>!o)} aria-label="Toggle evidence">
-            <IChevD size={14} style={{ transform:open?'rotate(180deg)':'none',transition:'transform var(--t-fast)' }}/>
+          <button className="iconbtn f-expand" onClick={()=>setOpen(o=>!o)} aria-label="Toggle evidence" aria-expanded={open}>
+            <IChevD size={14} style={{ transform:open?'rotate(180deg)':'none',transition:'transform var(--t-fast)',color:'var(--text-disabled)' }}/>
           </button>
         )}
       </div>
-      {open && extra && (
-        <pre className="f-extra">{JSON.stringify(extra,null,2)}</pre>
-      )}
+      <AnimatePresence>
+        {open && extra && (
+          <motion.pre
+            className="f-extra"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
+          >
+            {JSON.stringify(extra,null,2)}
+          </motion.pre>
+        )}
+      </AnimatePresence>
     </>
   )
 }
