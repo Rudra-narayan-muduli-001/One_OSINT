@@ -40,7 +40,7 @@ class Storage:
             "status": "running",
             "created_at": _now(),
             "finished_at": None,
-            "report": None,
+            "report_json": None,
             "module_runs": [],
         }
         data = self._read_all()
@@ -55,7 +55,7 @@ class Storage:
                 inv["status"] = status
                 inv["finished_at"] = _now()
                 if report is not None:
-                    inv["report"] = report
+                    inv["report_json"] = json.dumps(report)
                 break
         self._write_all(data)
 

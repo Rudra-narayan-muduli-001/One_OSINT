@@ -130,7 +130,7 @@ class TestStorageExtended:
         s.update_investigation(inv_id, "done", {"final": True})
         row = s.get_investigation(inv_id)
         assert row["status"] == "done"
-        assert "final" in row["report"]
+        assert "final" in row["report_json"]
 
         s.update_investigation(inv_id, "error")
         row = s.get_investigation(inv_id)
