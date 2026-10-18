@@ -144,6 +144,10 @@ async def investigate(req: InvestigateRequest) -> dict[str, Any]:
             storage.update_investigation(inv_id, "error")
         finally:
             await queue.put({"type": "investigation_done", "investigation_id": inv_id})
+            # Drop the queue once the run ends, otherwise every investigation that
+            # never had a WebSocket client leaks its queue (and every buffered
+            # event) for the lifetime of the process.
+            _active.pop(inv_id, None)
 
     task = asyncio.create_task(worker())
     _tasks.add(task)
