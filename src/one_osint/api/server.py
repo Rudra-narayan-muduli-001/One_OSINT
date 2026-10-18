@@ -159,7 +159,7 @@ async def export_report(inv_id: str, format: str = "json") -> PlainTextResponse:
 
 
 def report_to_text(report: dict[str, Any], fmt: str) -> str:
-    from ..exporters.export import export_csv, export_json, export_markdown
+    from ..exporters import export_csv, export_json, export_markdown
 
     if fmt == "json":
         return export_json(report)
