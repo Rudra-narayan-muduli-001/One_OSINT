@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from ..core.config import KeyVault, Settings
 from ..core.detect import detect_input_type
@@ -16,13 +18,40 @@ from ..core.storage import Storage
 from ..modules import discover_modules
 from ..orchestrator.runner import run_investigation
 
+# The dashboard is served same-origin, so it needs no CORS grant at all. The only
+# genuine cross-origin client is the Vite dev server (see web/vite.config.js).
+# Anything else -- notably a page the operator happens to visit -- must not be
+# able to read responses from this API.
+_DEFAULT_CORS_ORIGINS = (
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+)
+
+# Host validation is what actually stops DNS rebinding: a rebound attacker's page
+# is same-origin with the hostname it controls, so CORS never applies to it, and
+# only a Host check rejects the forged "Host: evil.example" request.
+_DEFAULT_ALLOWED_HOSTS = ("localhost", "127.0.0.1", "[::1]")
+
+
+def _env_list(name: str, default: tuple[str, ...]) -> list[str]:
+    raw = os.environ.get(name, "")
+    values = [v.strip() for v in raw.split(",") if v.strip()]
+    return values or list(default)
+
+
+ALLOWED_ORIGINS = _env_list("ONE_OSINT_CORS_ORIGINS", _DEFAULT_CORS_ORIGINS)
+ALLOWED_HOSTS = _env_list("ONE_OSINT_ALLOWED_HOSTS", _DEFAULT_ALLOWED_HOSTS)
+
 app = FastAPI(title="one-osint", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 
 _WEBUI_DIR = Path(__file__).resolve().parent.parent / "webui" / "static"
 if _WEBUI_DIR.is_dir():

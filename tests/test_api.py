@@ -93,7 +93,7 @@ def client(monkeypatch, tmp_path: Path) -> TestClient:
         _fake_run_investigation,
     )
     monkeypatch.setattr("one_osint.api.server.Storage", lambda: Storage(tmp_path / "api.sqlite3"))
-    return TestClient(app)
+    return TestClient(app, base_url="http://localhost")
 
 
 async def _fake_run_investigation(*args, **kwargs):
@@ -140,7 +140,7 @@ async def test_api_investigation_async_flow(monkeypatch, tmp_path: Path) -> None
     )
 
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with httpx.AsyncClient(transport=transport, base_url="http://localhost") as ac:
         r = await ac.post(
             "/api/investigate",
             json={"target": "alice", "modules": ["fake_check"]},

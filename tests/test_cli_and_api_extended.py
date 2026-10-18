@@ -1,4 +1,4 @@
-"""Tests for CLI and API extended coverage."""
+﻿"""Tests for CLI and API extended coverage."""
 
 from __future__ import annotations
 
@@ -124,7 +124,7 @@ class TestApiExtended:
         monkeypatch.setattr("one_osint.api.server.discover_modules", fake_discover)
         monkeypatch.setattr("one_osint.api.server.run_investigation", fake_run)
         monkeypatch.setattr("one_osint.api.server.Storage", lambda: Storage(tmp_path / "api_ext.sqlite3"))
-        return TestClient(app)
+        return TestClient(app, base_url="http://localhost")
 
     def test_health(self, client: TestClient) -> None:
         r = client.get("/health")
@@ -156,7 +156,7 @@ class TestApiExtended:
             "modules": [{"name": "m", "duration": 0.5, "findings": [{"site": "s", "url": "https://x", "status": "found", "category": "misc", "extra": {}, "media": [], "reason": None}], "error": None, "summary": {}}],
         }
         assert "alice" in report_to_text(report, "json")
-        # CSV exports findings rows, not the target string itself — check for site/module instead
+        # CSV exports findings rows, not the target string itself â€” check for site/module instead
         csv_out = report_to_text(report, "csv")
         assert "s" in csv_out and "m" in csv_out
         assert "# OSINT" in report_to_text(report, "md")
@@ -209,7 +209,7 @@ class TestApiExtended:
         monkeypatch.setattr("one_osint.api.server.run_investigation", fake_run)
         monkeypatch.setattr("one_osint.api.server.Storage", lambda: Storage(tmp_path / "ws_test.sqlite3"))
         transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as ac:
+        async with httpx.AsyncClient(transport=transport, base_url="http://localhost") as ac:
             # Check health via async client
             r = await ac.get("/health")
             assert r.status_code == 200
