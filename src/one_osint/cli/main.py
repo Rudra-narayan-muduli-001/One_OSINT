@@ -161,7 +161,18 @@ def serve(
 ) -> None:
     import uvicorn
 
+    from ..api.server import ALLOWED_HOSTS, ALLOWED_ORIGINS
+
     console.print(f"[cyan]one-osint API on http://{host}:{port} (docs at /docs)[/cyan]")
+    console.print(f"[dim]accepted Host headers: {', '.join(ALLOWED_HOSTS)}[/dim]")
+    console.print(f"[dim]accepted CORS origins: {', '.join(ALLOWED_ORIGINS)}[/dim]")
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        console.print(
+            "[yellow]WARNING:[/yellow] binding beyond loopback on an API with no "
+            "authentication. Requests whose Host is not in the list above are "
+            "rejected, so set ONE_OSINT_ALLOWED_HOSTS to your hostname/IP first "
+            "or nothing will load."
+        )
     uvicorn.run("one_osint.api.server:app", host=host, port=port, reload=False)
 
 
