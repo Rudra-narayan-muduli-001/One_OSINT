@@ -103,8 +103,14 @@ class Investigation:
             wanted = set(self.modules)
             out = []
             for name, cls in sorted(discover_modules().items()):
-                if name in wanted:
-                    mod = cls(keys=self.keys, settings=self.settings)
+                if name not in wanted:
+                    continue
+                mod = cls(keys=self.keys, settings=self.settings)
+                # Same gates as the auto path: an explicit name must not bypass
+                # input-type matching, key requirements or the opt-in consent flag.
+                if mod.can_run(self.input_type.value) and (
+                    self.allow_opt_in or not mod.opt_in
+                ):
                     out.append(mod)
             return out
         return get_modules_for(
